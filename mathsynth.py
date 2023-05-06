@@ -13,15 +13,20 @@ duration = 3.0    # seconds
 sample_rate = 44100
 amplitude = 1.0
 maxVolume = 32767
+#i is input, f is freuency, a is amplitude
+def sinWAV(i, freq, amp, phase):
+    return amp * math.sin(2.0 * math.pi * freq * (i + phase) / sample_rate)
 
-def sinWAV(i, f, a):
-    return a * math.sin(2.0 * math.pi * f * i / sample_rate)
-
-def squareWAV(i, f, a):
-    result = sinWAV(i, f, a)
+def squareWAV(i, freq, amp, phase):
+    result = sinWAV(i, freq, amp, phase)
     if result > 0:
-        return a
-    return -a
+        return amp
+    return -amp
+
+def triangleWAV(i, freq, amp, phase):
+    return amp * math.asin(math.sin(2.0 * math.pi * freq * (i + phase)))
+    
+    
 
 def soundFunction(i):
     return squareWAV(i, frequency, amplitude) * sinWAV(i, 0.5, amplitude) 
