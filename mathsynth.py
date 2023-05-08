@@ -3,12 +3,13 @@ import math
 import wave
 import struct
 import pyaudio
+import PySimpleGUI
 import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 
 # Define the parameters of the audio file
-frequency = 5000  # Hz
+frequency = 440  # Hz
 duration = 3.0    # seconds
 sample_rate = 44100
 amplitude = 1.0
@@ -25,6 +26,7 @@ def squareWAV(i, freq, amp, phase):
         return amp
     return -amp
 def sawtoothWAV(i, freq, amp , phase):
+    #wouldint x = y mod frequencywork just as well?
     return (2*freq *(i + phase) / sample_rate)%amp - 0.5*amp
 
 def triangleWAV(i, freq, amp, phase):
@@ -36,11 +38,15 @@ def triangleWAV(i, freq, amp, phase):
         return result 
     # print(-result)
     return -1*result 
+
+def triangleWav2(i, freq, amp, phase):
+    result = 4*(abs(amp*((freq*i/sample_rate)%1)-amp/2)-amp/4)
+    return result
     
     
 
 def soundFunction(i):
-    return triangleWAV(i, frequency, amplitude, phase)
+    return triangleWav2(i, frequency, amplitude, phase)
 
 # Define the function that generates the waveform
 def generate_waveform(duration, sample_rate):
