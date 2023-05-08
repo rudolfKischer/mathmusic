@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # Define the layout of the window
 layout = [
     [sg.Text('Select a waveform:')],
-    [sg.Combo(['Triangle', 'Square', 'Sawtooth'], key='-WAVEFORM-')],
+    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], key='-WAVEFORM-')],
     [sg.Slider(range=(20, 20000), key='-FREQUENCY-', orientation='h')],
     [sg.Slider(range=(1, 4), key='-AMPLITUDE-', orientation='h')],
     [sg.Slider(range=(1, 4), key='-PHASE-', orientation='h')],
@@ -31,17 +31,17 @@ maxVolume = 32767
 phase = 0.0
 windowWaveNumber = 1
 #i is input, f is freuency, a is amplitude
-def sinWAV(i, freq, amp, phase):
+def sineWAV(i, freq, amp, phase):
     return amp * math.sin(2.0 * math.pi * freq * (i + phase) / sample_rate)
 
 def squareWAV(i, freq, amp, phase):
-    result = sinWAV(i, freq, amp, phase)
+    result = sineWAV(i, freq, amp, phase)
     if result > 0:
         return amp
     return -amp
 def sawtoothWAV(i, freq, amp , phase):
     #wouldint x = y mod frequencywork just as well?
-    return (2*freq *(i + phase) / sample_rate)%amp - 0.5*amp
+    return (freq *(i + phase) / sample_rate)%amp - 0.5*amp
 
 def triangleWAV(i, freq, amp, phase):
     result = sawtoothWAV(i, freq, amp , phase) 
@@ -53,12 +53,20 @@ def triangleWAV(i, freq, amp, phase):
     # print(-result)
     return -1*result 
 
-def triangleWav2(i, freq, amp, phase):
+def triangleWAV2(i, freq, amp, phase):
     result = 4*(abs(amp*((freq*i/sample_rate)%1)-amp/2)-amp/4)
     return result
     
-def soundFunction(i, frequency, amplitude, phase):
-    return triangleWav2(i, frequency, amplitude, phase)
+def soundFunction(i, frequency, amplitude, phase, waveform):
+    if(waveform == "Sine"):
+        return sineWAV(i, frequency, amplitude, phase)
+    if(waveform == "Triangle"):
+        return triangleWAV2(i, frequency, amplitude, phase)
+    if(waveform == "Square"):
+        return squareWAV(i, frequency, amplitude, phase)
+    if(waveform == "Sawtooth"):
+        return sawtoothWAV(i, frequency, amplitude, phase)
+    return sineWAV(i, frequency, amplitude, phase)
 
 
 
@@ -77,7 +85,7 @@ while True:
     if event == sg.WINDOW_CLOSED or event == 'Exit':
         break
 
-    # If user clicks 'start' start the waveform
+    # If user clicks 'start' start the calculations and waveform
     if event == 'Start':
         waveform = values['-WAVEFORM-']
         # Define the function that generates the waveform
@@ -85,7 +93,7 @@ while True:
             num_samples = int(sample_rate * duration)
             data = []
             for i in range(num_samples):
-                sample = soundFunction(i, freq, amp, phase) * maxVolume
+                sample = soundFunction(i, freq, amp, phase, waveform) * maxVolume
                 data.append(int(sample))
             return data
 
