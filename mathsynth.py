@@ -15,13 +15,13 @@ layout = [
     [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-')],
     [sg.Text("Enter a custom function here")],
     [sg.Text("freq=freq, amp = amplitude , phase= phase")],
-    [sg.InputText("math.sin(freq*i)", key="-CUSTOM-")],
+    [sg.InputText("amp*math.sin(freq*i/sample_rate)", key="-CUSTOM-")],
     [sg.Text("Frequency")],
     [sg.Slider(range=(125, 4000), key='-FREQUENCY-', orientation='h')],
     [sg.Text("Amplitude")],
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50)],
     [sg.Text("Phase")],
-    [sg.Slider(range=(1, 4), key='-PHASE-', orientation='h')],
+    [sg.Slider(range=(0, 4), key='-PHASE-', orientation='h')],
      [sg.Text("Duration of play")],
     [sg.Slider(range=(1, 5), key='-DURATION-', orientation='h')],
     [sg.Button('Start'), sg.Text("ready",key='-LOG-')]
@@ -50,6 +50,8 @@ def squareWAV(i, freq, amp, phase):
 def sawtoothWAV(i, freq, amp , phase):
     #wouldint x = y mod frequencywork just as well?
     return (freq *(i + phase) / sample_rate)%amp - 0.5*amp
+def sawtoothWAV2(i, freq, amp, phase):
+    return amp*((freq/2*(i+phase)/sample_rate)%1)-0.5*amp
 
 def triangleWAV(i, freq, amp, phase):
     result = sawtoothWAV(i, freq, amp , phase) 
@@ -62,7 +64,7 @@ def triangleWAV(i, freq, amp, phase):
     return -1*result 
 
 def triangleWAV2(i, freq, amp, phase):
-    result = 4*(abs(amp*((freq*i/sample_rate)%1)-amp/2)-amp/4)
+    result = 4*(abs(amp*((freq*(i+phase)/sample_rate)%1)-amp/2)-amp/4)
     return result
     
 def soundFunction(i, freq, amp, phase, waveform, custom):
@@ -77,7 +79,7 @@ def soundFunction(i, freq, amp, phase, waveform, custom):
         return squareWAV(i, freq, amp, phase)
     if(waveform == "Sawtooth"):
         window['-LOG-'].update(value="Sawtooth played at " + str(freq) + "hz!")
-        return sawtoothWAV(i, freq, amp, phase)
+        return sawtoothWAV2(i, freq, amp, phase)
         
     if(waveform == 'Custom'):
         try:
