@@ -15,10 +15,15 @@ layout = [
     [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-')],
     [sg.Text("Enter a custom function here")],
     [sg.Text("freq=freq, amp = amplitude , phase= phase")],
-    [sg.InputText("math.sin(freq*i)", key="-Custom-")],
-    [sg.Slider(range=(20, 20000), key='-FREQUENCY-', orientation='h')],
-    [sg.Slider(range=(1, 4), key='-AMPLITUDE-', orientation='h')],
+    [sg.InputText("math.sin(freq*i)", key="-CUSTOM-")],
+    [sg.Text("Frequency")],
+    [sg.Slider(range=(125, 4000), key='-FREQUENCY-', orientation='h')],
+    [sg.Text("Amplitude")],
+    [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50)],
+    [sg.Text("Phase")],
     [sg.Slider(range=(1, 4), key='-PHASE-', orientation='h')],
+     [sg.Text("Duration of play")],
+    [sg.Slider(range=(1, 5), key='-DURATION-', orientation='h')],
     [sg.Button('Start'), sg.Text("ready",key='-LOG-')]
 ]
 
@@ -27,7 +32,7 @@ layout = [
 
 # Define the parameters of the audio file
 frequency = 440  # Hz
-duration = 3.0    # seconds
+duration = 1    # seconds
 sample_rate = 44100
 amplitude = 1.0
 maxVolume = 32767
@@ -89,14 +94,15 @@ def soundFunction(i, freq, amp, phase, waveform, custom):
 
 #program start
 # Create the window
-window = sg.Window('Waveform Selector', layout)
+window = sg.Window('Waveform Selector', layout,background_color="thistle")
 
 while True:
     event, values = window.read()
     freq = values['-FREQUENCY-']
-    amp = values['-AMPLITUDE-']
+    amp = values['-AMPLITUDE-']/100
     phase = values['-PHASE-']
-    custom = values['-Custom-']
+    custom = values['-CUSTOM-']
+    duration = values['-DURATION-']
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit':
         break
