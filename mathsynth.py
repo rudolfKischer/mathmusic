@@ -12,7 +12,10 @@ import matplotlib.pyplot as plt
 # Define the layout of the window
 layout = [
     [sg.Text('Select a waveform:')],
-    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], key='-WAVEFORM-')],
+    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], key='-WAVEFORM-')],
+    [sg.Text("Enter a custom function here")],
+    [sg.Text("freq=freq, amp = amplitude , phase= phase")],
+    [sg.InputText("math.sin(freq*i)", key="-Custom-")],
     [sg.Slider(range=(20, 20000), key='-FREQUENCY-', orientation='h')],
     [sg.Slider(range=(1, 4), key='-AMPLITUDE-', orientation='h')],
     [sg.Slider(range=(1, 4), key='-PHASE-', orientation='h')],
@@ -57,16 +60,18 @@ def triangleWAV2(i, freq, amp, phase):
     result = 4*(abs(amp*((freq*i/sample_rate)%1)-amp/2)-amp/4)
     return result
     
-def soundFunction(i, frequency, amplitude, phase, waveform):
+def soundFunction(i, freq, amp, phase, waveform, custom):
     if(waveform == "Sine"):
-        return sineWAV(i, frequency, amplitude, phase)
+        return sineWAV(i, freq, amp, phase)
     if(waveform == "Triangle"):
-        return triangleWAV2(i, frequency, amplitude, phase)
+        return triangleWAV2(i, freq, amp, phase)
     if(waveform == "Square"):
-        return squareWAV(i, frequency, amplitude, phase)
+        return squareWAV(i, freq, amp, phase)
     if(waveform == "Sawtooth"):
-        return sawtoothWAV(i, frequency, amplitude, phase)
-    return sineWAV(i, frequency, amplitude, phase)
+        return sawtoothWAV(i, freq, amp, phase)
+    if(waveform == 'Custom'):
+        return eval(custom)
+    return sineWAV(i, freq, amp, phase)
 
 
 
@@ -81,6 +86,7 @@ while True:
     freq = values['-FREQUENCY-']
     amp = values['-AMPLITUDE-']
     phase = values['-PHASE-']
+    custom = values['-Custom-']
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit':
         break
@@ -93,7 +99,7 @@ while True:
             num_samples = int(sample_rate * duration)
             data = []
             for i in range(num_samples):
-                sample = soundFunction(i, freq, amp, phase, waveform) * maxVolume
+                sample = soundFunction(i, freq, amp, phase, waveform, custom ) * maxVolume
                 data.append(int(sample))
             return data
 
