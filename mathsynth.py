@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 # Define the layout of the window
 layout = [
     [sg.Text('Select a waveform:')],
-    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], key='-WAVEFORM-')],
+    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-')],
     [sg.Text("Enter a custom function here")],
     [sg.Text("freq=freq, amp = amplitude , phase= phase")],
     [sg.InputText("math.sin(freq*i)", key="-Custom-")],
     [sg.Slider(range=(20, 20000), key='-FREQUENCY-', orientation='h')],
     [sg.Slider(range=(1, 4), key='-AMPLITUDE-', orientation='h')],
     [sg.Slider(range=(1, 4), key='-PHASE-', orientation='h')],
-    [sg.Button('Start')]
+    [sg.Button('Start'), sg.Text("ready",key='-LOG-')]
 ]
 
 
@@ -62,15 +62,25 @@ def triangleWAV2(i, freq, amp, phase):
     
 def soundFunction(i, freq, amp, phase, waveform, custom):
     if(waveform == "Sine"):
+        window['-LOG-'].update(value="Sine played at " + str(freq) + "hz!")
         return sineWAV(i, freq, amp, phase)
     if(waveform == "Triangle"):
+        window['-LOG-'].update(value="Triangle played at " + str(freq) + "hz!")
         return triangleWAV2(i, freq, amp, phase)
     if(waveform == "Square"):
+        window['-LOG-'].update(value="Square played at " + str(freq) + "hz!")
         return squareWAV(i, freq, amp, phase)
     if(waveform == "Sawtooth"):
+        window['-LOG-'].update(value="Sawtooth played at " + str(freq) + "hz!")
         return sawtoothWAV(i, freq, amp, phase)
+        
     if(waveform == 'Custom'):
-        return eval(custom)
+        try:
+            window['-LOG-'].update(value="Custom played at " + str(freq) + "hz!")
+            return eval(custom)
+        except:
+            window['-LOG-'].update(value="BAD FUNCTION, goodboy saw played")
+            return sawtoothWAV(i, freq, amp, phase) 
     return sineWAV(i, freq, amp, phase)
 
 
