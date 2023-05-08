@@ -22,9 +22,9 @@ layout = [
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50)],
     [sg.Text("Phase")],
     [sg.Slider(range=(0, 4), key='-PHASE-', orientation='h')],
-     [sg.Text("Duration of play")],
+    [sg.Text("Duration of play")],
     [sg.Slider(range=(1, 5), key='-DURATION-', orientation='h')],
-    [sg.Button('Start'), sg.Text("ready",key='-LOG-')]
+    [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')]
 ]
 
 
@@ -64,7 +64,7 @@ def triangleWAV(i, freq, amp, phase):
     return -1*result 
 
 def triangleWAV2(i, freq, amp, phase):
-    result = 4*(abs(amp*((freq*(i+phase)/sample_rate)%1)-amp/2)-amp/4)
+    result = 4*amp*(abs(((freq*(i+phase)/sample_rate)%1)-1/2)-1/4)
     return result
     
 def soundFunction(i, freq, amp, phase, waveform, custom):
@@ -90,9 +90,46 @@ def soundFunction(i, freq, amp, phase, waveform, custom):
             return sawtoothWAV(i, freq, amp, phase) 
     return sineWAV(i, freq, amp, phase)
 
+def plotWaveform(data, audio_data):
+
+    # Convert the audio data to a numpy array
+    audio_array = np.frombuffer(audio_data, dtype=np.int16)
 
 
+    # Compute the spectrogram of the audio data
+    frequencies, times, spectrogram = signal.spectrogram(audio_array, sample_rate)
 
+    # Create a figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+    # Plot the spectrogram in the first subplot
+    ax1.pcolormesh(times, frequencies, spectrogram)
+    ax1.set_ylabel('Frequency (Hz)')
+    ax1.set_xlabel('Time (s)')
+    ax1.set_title('Spectrogram')
+
+    # Plot a small portion of the waveform in the second subplot
+    start_sample = 0
+    end_sample = sample_rate * 3
+    ax2.plot(data[start_sample:end_sample])
+    ax2.set_xlabel('Time (samples)')
+    ax2.set_ylabel('Amplitude')
+    ax2.set_title('Zoomed waveform')
+    ax2.set_xlim(0,2*windowWaveNumber*sample_rate/frequency)
+
+    # Adjust the spacing between the subplots
+    plt.subplots_adjust(wspace=0.4)
+
+    # Show the figure
+    plt.show()
+       # Define the function that generates the waveform
+def generate_waveform(duration, sample_rate):
+            num_samples = int(sample_rate * duration)
+            data = []
+            for i in range(num_samples):
+                sample = soundFunction(i, freq, amp, phase, waveform, custom ) * maxVolume
+                data.append(int(sample))
+            return data
 
 #program start
 # Create the window
@@ -112,17 +149,8 @@ while True:
     # If user clicks 'start' start the calculations and waveform
     if event == 'Start':
         waveform = values['-WAVEFORM-']
-        # Define the function that generates the waveform
-        def generate_waveform(duration, sample_rate):
-            num_samples = int(sample_rate * duration)
-            data = []
-            for i in range(num_samples):
-                sample = soundFunction(i, freq, amp, phase, waveform, custom ) * maxVolume
-                data.append(int(sample))
-            return data
-
-
-
+ 
+       
 
         # Generate the waveform
         data = generate_waveform(duration, sample_rate)
@@ -148,6 +176,12 @@ while True:
         stream.write(audio_data)
         stream.close()
         audio_player.terminate()
+        
+    if event == 'Generate Graph':
+        try:
+             plotWaveform(data, audio_data)
+        except:
+            window['-LOG-'].update(value="No Data to Graph")
 
         
 
@@ -167,40 +201,9 @@ window.close()
 
 
 
-#!!!!!!!!!!!!!!
-# plotWaveform(data, audio_data)
-
-#window plot ect
-#!!!!!!!!!!!!!!!!!!
-# def plotWaveform(data, audio_data):
-
-#     # Convert the audio data to a numpy array
-#     audio_array = np.frombuffer(audio_data, dtype=np.int16)
 
 
-#     # Compute the spectrogram of the audio data
-#     frequencies, times, spectrogram = signal.spectrogram(audio_array, sample_rate)
 
-#     # Create a figure with two subplots
-#     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
-#     # Plot the spectrogram in the first subplot
-#     ax1.pcolormesh(times, frequencies, spectrogram)
-#     ax1.set_ylabel('Frequency (Hz)')
-#     ax1.set_xlabel('Time (s)')
-#     ax1.set_title('Spectrogram')
 
-#     # Plot a small portion of the waveform in the second subplot
-#     start_sample = 0
-#     end_sample = sample_rate * 3
-#     ax2.plot(data[start_sample:end_sample])
-#     ax2.set_xlabel('Time (samples)')
-#     ax2.set_ylabel('Amplitude')
-#     ax2.set_title('Zoomed waveform')
-#     ax2.set_xlim(0,2*windowWaveNumber*sample_rate/frequency)
 
-#     # Adjust the spacing between the subplots
-#     plt.subplots_adjust(wspace=0.4)
-
-#     # Show the figure
-#     plt.show()
