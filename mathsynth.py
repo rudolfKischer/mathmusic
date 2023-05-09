@@ -15,17 +15,18 @@ layout = [
     [sg.Text('Select a waveform:')],
     [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Enter a custom function here",visible=False,key="-CUSTOMTIP1-")],
-    [sg.Text("freq=freq, amp = amplitude , phase= phase",visible=False,key="-CUSTOMTIP2-")],
+    [sg.Text("freq=freq, amp = amplitude , phase= phase",visible=False, key="-CUSTOMTIP2-")],
     [sg.InputText("amp*math.sin(2*math.pi*freq*i/sample_rate)", key="-CUSTOM-",visible=False)],
     [sg.Text("Frequency")],
-    [sg.Slider(range=(125, 4000), key='-FREQUENCY-', orientation='h')],
+    [sg.Slider(range=(125, 20000), key='-FREQUENCY-', orientation='h')],
     [sg.Text("Amplitude")],
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50)],
     [sg.Text("Phase")],
     [sg.Slider(range=(0, 4), key='-PHASE-', orientation='h')],
-    [sg.Text("Duration of play")],
-    [sg.Slider(range=(1, 5), key='-DURATION-', orientation='h')],
-    [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')]
+    [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')],
+    [sg.Button('<', pad=0, button_color="black"),sg.Button('>', pad=0,button_color="black"),sg.Button('C', pad=0,button_color="bisque"),sg.Button('D', pad=0,button_color="bisque"),sg.Button('E', pad=0,button_color="bisque"),
+    sg.Button('F', pad=0,button_color="bisque"),sg.Button('G', pad=0,button_color="bisque"),sg.Button('A', pad=0,button_color="bisque"),sg.Button('B', pad=0,button_color="bisque")],
+    [sg.Text("Octave = 4", key='-OCTAVE-')]
 ]
 
 
@@ -49,6 +50,9 @@ phase = 0.0
 windowWaveNumber = 1
 masterSoundFunction = None
 customFunctionString = "amp*math.sin(2*math.pi*freq*i/sample_rate)"
+
+octave = 4
+noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
 #i is input, f is freuency, a is amplitude
 def sineWAV(i, freq, amp, phase):
     return amp * math.sin(2.0 * math.pi * freq * (i + phase) / sample_rate)
@@ -97,6 +101,39 @@ def soundCallBack(in_data, frame_count, time_info, status):
     
     wave_pos = buffer_end
     return (out_data, pyaudio.paContinue)
+#checks if a note was pressed
+def pianoHandler():
+    if event == '<' or event == '>':
+        global octave
+        if event == '>' and octave < 10:
+            octave = octave + 1    
+        elif event == '<' and octave > 0:
+            octave = octave - 1
+        window['-OCTAVE-'].update(value="Octave = " + str(octave))
+
+
+
+    if event in noteButtons:
+        
+        noteNum = getNoteNum(event)
+        
+        noteFreq = 16.35*(2**(1/12))**noteNum
+        window['-FREQUENCY-'].update(value=noteFreq)
+        
+
+
+def getNoteNum(note):
+    
+    noteMap = { 
+        "C" : 0,
+        "D" : 2,
+        "E" : 4,
+        "F" : 5,
+        "G" : 7,
+        "A" : 9,
+        "B" : 11,
+    }
+    return noteMap[note]+12*octave
     
         
     
@@ -152,7 +189,6 @@ while True:
     amplitude = values['-AMPLITUDE-']/100
     phase = values['-PHASE-']
     custom = values['-CUSTOM-']
-    duration = values['-DURATION-']
     waveform = values['-WAVEFORM-']
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit':
@@ -211,6 +247,10 @@ while True:
         except:
             window['-LOG-'].update(value="No Data to Graph")
     
+    
+    pianoHandler()
+        
+        
     
 
         
