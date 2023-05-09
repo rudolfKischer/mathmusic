@@ -17,7 +17,7 @@ layout = [
     [sg.Text("freq=freq, amp = amplitude , phase= phase",visible=False, key="-CUSTOMTIP2-")],
     [sg.InputText("amp*math.sin(2*math.pi*freq*i/sample_rate)", key="-CUSTOM-",visible=False)],
     [sg.Text("Frequency")],
-    [sg.Slider(range=(125, 4000), key='-FREQUENCY-', orientation='h')],
+    [sg.Slider(range=(125, 20000), key='-FREQUENCY-', orientation='h')],
     [sg.Text("Amplitude")],
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50)],
     [sg.Text("Phase")],
@@ -25,7 +25,8 @@ layout = [
     [sg.Text("Duration of play")],
     [sg.Slider(range=(1, 5), key='-DURATION-', orientation='h')],
     [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')],
-    [sg.Button('<', pad=0),sg.Button('>', pad=0),sg.Button('C', pad=0),sg.Button('D', pad=0),sg.Button('E', pad=0),sg.Button('F', pad=0),sg.Button('G', pad=0),sg.Button('A', pad=0),sg.Button('B', pad=0)],
+    [sg.Button('<', pad=0, button_color="black"),sg.Button('>', pad=0,button_color="black"),sg.Button('C', pad=0,button_color="bisque"),sg.Button('D', pad=0,button_color="bisque"),sg.Button('E', pad=0,button_color="bisque"),
+    sg.Button('F', pad=0,button_color="bisque"),sg.Button('G', pad=0,button_color="bisque"),sg.Button('A', pad=0,button_color="bisque"),sg.Button('B', pad=0,button_color="bisque")],
     [sg.Text("Octave = 4", key='-OCTAVE-')]
 ]
 
@@ -88,7 +89,7 @@ def soundFunction(i, freq, amp, phase, waveform, custom):
 def pianoHandler():
     if event == '<' or event == '>':
         global octave
-        if event == '>' and octave < 7:
+        if event == '>' and octave < 10:
             octave = octave + 1    
         elif event == '<' and octave > 0:
             octave = octave - 1
