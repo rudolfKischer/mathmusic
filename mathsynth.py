@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 # Define the layout of the window
 layout = [
     [sg.Text('Select a waveform:')],
-    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-')],
-    [sg.Text("Enter a custom function here")],
-    [sg.Text("freq=freq, amp = amplitude , phase= phase")],
-    [sg.InputText("amp*math.sin(freq*i/sample_rate)", key="-CUSTOM-")],
+    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+    [sg.Text("Enter a custom function here",visible=False,key="-CUSTOMTIP1-")],
+    [sg.Text("freq=freq, amp = amplitude , phase= phase",visible=False,key="-CUSTOMTIP2-")],
+    [sg.InputText("amp*math.sin(2*math.pi*freq*i/sample_rate)", key="-CUSTOM-",visible=False)],
     [sg.Text("Frequency")],
     [sg.Slider(range=(125, 4000), key='-FREQUENCY-', orientation='h')],
     [sg.Text("Amplitude")],
@@ -49,46 +49,40 @@ def squareWAV(i, freq, amp, phase):
     return -amp
 def sawtoothWAV(i, freq, amp , phase):
     #wouldint x = y mod frequencywork just as well?
-    return (freq *(i + phase) / sample_rate)%amp - 0.5*amp
-def sawtoothWAV2(i, freq, amp, phase):
     return amp*((freq/2*(i+phase)/sample_rate)%1)-0.5*amp
+    
 
 def triangleWAV(i, freq, amp, phase):
-    result = sawtoothWAV(i, freq, amp , phase) 
-    section = math.ceil((i/float(sample_rate))/(1/(2*freq))) 
-    # print(section)
-    if(section % 2 == 1):
-        # print(result)
-        return result 
-    # print(-result)
-    return -1*result 
-
-def triangleWAV2(i, freq, amp, phase):
     result = 4*amp*(abs(((freq*(i+phase)/sample_rate)%1)-1/2)-1/4)
     return result
     
+    
 def soundFunction(i, freq, amp, phase, waveform, custom):
-    if(waveform == "Sine"):
-        window['-LOG-'].update(value="Sine played at " + str(freq) + "hz!")
-        return sineWAV(i, freq, amp, phase)
-    if(waveform == "Triangle"):
-        window['-LOG-'].update(value="Triangle played at " + str(freq) + "hz!")
-        return triangleWAV2(i, freq, amp, phase)
-    if(waveform == "Square"):
-        window['-LOG-'].update(value="Square played at " + str(freq) + "hz!")
-        return squareWAV(i, freq, amp, phase)
-    if(waveform == "Sawtooth"):
-        window['-LOG-'].update(value="Sawtooth played at " + str(freq) + "hz!")
-        return sawtoothWAV2(i, freq, amp, phase)
+    match waveform:
+        case "Sine":
+            window['-LOG-'].update(value="Sine played at " + str(freq) + "hz!")
+            return sineWAV(i, freq, amp, phase)
+        case "Triangle":
+            window['-LOG-'].update(value="Triangle played at " + str(freq) + "hz!")
+            return triangleWAV(i, freq, amp, phase)
+        case "Sqaure":
+            window['-LOG-'].update(value="Square played at " + str(freq) + "hz!")
+            return squareWAV(i, freq, amp, phase)
+        case "Sawtooth":
+            window['-LOG-'].update(value="Sawtooth played at " + str(freq) + "hz!")
+            return sawtoothWAV(i, freq, amp, phase)
+        case "Custom":
+            try:
+                window['-LOG-'].update(value="Custom played at " + str(freq) + "hz!")
+                return eval(custom)
+            except:
+                window['-LOG-'].update(value="BAD FUNCTION, goodboy saw played")
+                return sawtoothWAV(i, freq, amp, phase) 
+        case _:
+            return sineWAV(i, freq, amp, phase)
+    
         
-    if(waveform == 'Custom'):
-        try:
-            window['-LOG-'].update(value="Custom played at " + str(freq) + "hz!")
-            return eval(custom)
-        except:
-            window['-LOG-'].update(value="BAD FUNCTION, goodboy saw played")
-            return sawtoothWAV(i, freq, amp, phase) 
-    return sineWAV(i, freq, amp, phase)
+    
 
 def plotWaveform(data, audio_data):
 
@@ -115,7 +109,7 @@ def plotWaveform(data, audio_data):
     ax2.set_xlabel('Time (samples)')
     ax2.set_ylabel('Amplitude')
     ax2.set_title('Zoomed waveform')
-    ax2.set_xlim(0,2*windowWaveNumber*sample_rate/frequency)
+    ax2.set_xlim(0,2*windowWaveNumber*2*sample_rate/frequency)
 
     # Adjust the spacing between the subplots
     plt.subplots_adjust(wspace=0.4)
@@ -131,10 +125,10 @@ def generate_waveform(duration, sample_rate):
                 data.append(int(sample))
             return data
 
-#program start
+
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
-
+#program event loop
 while True:
     event, values = window.read()
     freq = values['-FREQUENCY-']
@@ -142,13 +136,25 @@ while True:
     phase = values['-PHASE-']
     custom = values['-CUSTOM-']
     duration = values['-DURATION-']
+    waveform = values['-WAVEFORM-']
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit':
         break
+   
+    #handles visibility of elements for use when custom is selected as waveform type
+    if event == '-WAVEFORM-':
+        if(waveform == "Custom"):  
+            window['-CUSTOM-'].update(visible=True)
+            window['-CUSTOMTIP1-'].update(visible=True)
+            window['-CUSTOMTIP2-'].update(visible=True) 
+        else:
+            window['-CUSTOM-'].update(visible=False)
+            window['-CUSTOMTIP1-'].update(visible=False)
+            window['-CUSTOMTIP2-'].update(visible=False)
 
     # If user clicks 'start' start the calculations and waveform
     if event == 'Start':
-        waveform = values['-WAVEFORM-']
+        
  
        
 
@@ -176,18 +182,16 @@ while True:
         stream.write(audio_data)
         stream.close()
         audio_player.terminate()
-        
+    #handles generation of graph when button is pressed, checks if data is present to genreate    
     if event == 'Generate Graph':
         try:
              plotWaveform(data, audio_data)
         except:
             window['-LOG-'].update(value="No Data to Graph")
+    
+    
 
         
-
-
-
-
 # Close the window and exit the program
 window.close()
 
