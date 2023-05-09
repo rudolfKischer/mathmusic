@@ -7,6 +7,7 @@ import PySimpleGUI as sg
 import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
+import time
 
 #GUI PARAMS
 # Define the layout of the window
@@ -22,8 +23,6 @@ layout = [
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50)],
     [sg.Text("Phase")],
     [sg.Slider(range=(0, 4), key='-PHASE-', orientation='h')],
-    [sg.Text("Duration of play")],
-    [sg.Slider(range=(1, 5), key='-DURATION-', orientation='h')],
     [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')],
     [sg.Button('<', pad=0, button_color="black"),sg.Button('>', pad=0,button_color="black"),sg.Button('C', pad=0,button_color="bisque"),sg.Button('D', pad=0,button_color="bisque"),sg.Button('E', pad=0,button_color="bisque"),
     sg.Button('F', pad=0,button_color="bisque"),sg.Button('G', pad=0,button_color="bisque"),sg.Button('A', pad=0,button_color="bisque"),sg.Button('B', pad=0,button_color="bisque")],
@@ -34,6 +33,14 @@ layout = [
 
 
 # Define the parameters of the audio file
+prevTime = time.time()
+sample_width = 2
+buffer_size = 1024
+wave_pos = 0
+
+playingAudio = False
+
+
 frequency = 440  # Hz
 duration = 1    # seconds
 sample_rate = 44100
@@ -41,6 +48,9 @@ amplitude = 1.0
 maxVolume = 32767
 phase = 0.0
 windowWaveNumber = 1
+masterSoundFunction = None
+customFunctionString = "amp*math.sin(2*math.pi*freq*i/sample_rate)"
+
 octave = 4
 noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
 #i is input, f is freuency, a is amplitude
@@ -55,36 +65,42 @@ def squareWAV(i, freq, amp, phase):
 def sawtoothWAV(i, freq, amp , phase):
     #wouldint x = y mod frequencywork just as well?
     return amp*((freq/2*(i+phase)/sample_rate)%1)-0.5*amp
-    
-
 def triangleWAV(i, freq, amp, phase):
     result = 4*amp*(abs(((freq*(i+phase)/sample_rate)%1)-1/2)-1/4)
     return result
+
+def customWAV(i, freq, amp, phase):
+    try:
+        return eval(customFunctionString)
+    except:
+        window['-LOG-'].update(value="BAD FUNCTION, goodboy saw played")
+        return sawtoothWAV(i, freq, amp, phase)
     
-    
+soundFunctions = {
+    "Sine": sineWAV,
+    "Square": squareWAV,
+    "Sawtooth": sawtoothWAV,
+    "Triangle": triangleWAV,
+    "Custom": customWAV
+}
+masterSoundFunction = soundFunctions["Sine"]
+
 def soundFunction(i, freq, amp, phase, waveform, custom):
-    match waveform:
-        case "Sine":
-            window['-LOG-'].update(value="Sine played at " + str(freq) + "hz!")
-            return sineWAV(i, freq, amp, phase)
-        case "Triangle":
-            window['-LOG-'].update(value="Triangle played at " + str(freq) + "hz!")
-            return triangleWAV(i, freq, amp, phase)
-        case "Sqaure":
-            window['-LOG-'].update(value="Square played at " + str(freq) + "hz!")
-            return squareWAV(i, freq, amp, phase)
-        case "Sawtooth":
-            window['-LOG-'].update(value="Sawtooth played at " + str(freq) + "hz!")
-            return sawtoothWAV(i, freq, amp, phase)
-        case "Custom":
-            try:
-                window['-LOG-'].update(value="Custom played at " + str(freq) + "hz!")
-                return eval(custom)
-            except:
-                window['-LOG-'].update(value="BAD FUNCTION, goodboy saw played")
-                return sawtoothWAV(i, freq, amp, phase) 
-        case _:
-            return sineWAV(i, freq, amp, phase)
+    return masterSoundFunction(i, freq, amp, phase)
+        
+def soundCallBack(in_data, frame_count, time_info, status):
+    global wave_pos
+    global frequency, amplitude, phase
+
+    buffer_end = wave_pos + frame_count
+    out_data = b''
+    for i in range(wave_pos, buffer_end):
+        sample = masterSoundFunction(i, frequency, amplitude, phase)
+        sample_data = struct.pack('h', int(sample * maxVolume))
+        out_data += sample_data
+    
+    wave_pos = buffer_end
+    return (out_data, pyaudio.paContinue)
 #checks if a note was pressed
 def pianoHandler():
     if event == '<' or event == '>':
@@ -159,7 +175,7 @@ def generate_waveform(duration, sample_rate):
             num_samples = int(sample_rate * duration)
             data = []
             for i in range(num_samples):
-                sample = soundFunction(i, freq, amp, phase, waveform, custom ) * maxVolume
+                sample = soundFunction(i, frequency, amplitude, phase, waveform, custom ) * maxVolume
                 data.append(int(sample))
             return data
 
@@ -169,11 +185,10 @@ window = sg.Window('Waveform Selector', layout,background_color="thistle")
 #program event loop
 while True:
     event, values = window.read()
-    freq = values['-FREQUENCY-']
-    amp = values['-AMPLITUDE-']/100
+    frequency = values['-FREQUENCY-']
+    amplitude = values['-AMPLITUDE-']/100
     phase = values['-PHASE-']
     custom = values['-CUSTOM-']
-    duration = values['-DURATION-']
     waveform = values['-WAVEFORM-']
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit':
@@ -181,7 +196,8 @@ while True:
    
     #handles visibility of elements for use when custom is selected as waveform type
     if event == '-WAVEFORM-':
-        if(waveform == "Custom"):  
+        if(waveform == "Custom"): 
+            customFunctionString = custom
             window['-CUSTOM-'].update(visible=True)
             window['-CUSTOMTIP1-'].update(visible=True)
             window['-CUSTOMTIP2-'].update(visible=True) 
@@ -189,16 +205,33 @@ while True:
             window['-CUSTOM-'].update(visible=False)
             window['-CUSTOMTIP1-'].update(visible=False)
             window['-CUSTOMTIP2-'].update(visible=False)
+        window['-LOG-'].update(value=waveform + " played at " + str(frequency) + "hz!")
+        masterSoundFunction = soundFunctions[waveform]
 
     # If user clicks 'start' start the calculations and waveform
     if event == 'Start':
         
- 
-       
+        playingAudio = not playingAudio
+        if(playingAudio):
+            # Play the WAV file
+            audio_player = pyaudio.PyAudio()
+            stream = audio_player.open(format=audio_player.get_format_from_width(sample_width),
+                                channels=1,
+                                rate=sample_rate,
+                                input=True,
+                                output=True,
+                                frames_per_buffer=buffer_size,
+                                stream_callback=soundCallBack)
+            stream.start_stream()
+        else:
+            stream.stop_stream()
+            stream.close()
+            audio_player.terminate()
+            
 
-        # Generate the waveform
+    #handles generation of graph when button is pressed, checks if data is present to genreate    
+    if event == 'Generate Graph':        
         data = generate_waveform(duration, sample_rate)
-
         # Save the waveform to a WAV file
         wave_file = wave.open('waveform.wav', 'w')
         wave_file.setparams((1, 2, sample_rate, len(data), 'NONE', 'not compressed'))
@@ -209,19 +242,6 @@ while True:
         audio_file = wave.open('waveform.wav', 'rb')
         audio_data = audio_file.readframes(audio_file.getnframes())
         audio_file.close()
-
-
-        # Play the WAV file
-        audio_player = pyaudio.PyAudio()
-        stream = audio_player.open(format=audio_player.get_format_from_width(audio_file.getsampwidth()),
-                                channels=audio_file.getnchannels(),
-                                rate=audio_file.getframerate(),
-                                output=True)
-        stream.write(audio_data)
-        stream.close()
-        audio_player.terminate()
-    #handles generation of graph when button is pressed, checks if data is present to genreate    
-    if event == 'Generate Graph':
         try:
              plotWaveform(data, audio_data)
         except:
