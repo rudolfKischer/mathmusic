@@ -8,6 +8,7 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 import time
+import matplotlib.pyplot as plt
 
 #GUI PARAMS
 # Define the layout of the window
@@ -26,7 +27,8 @@ layout = [
     [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')],
     [sg.Button('<', pad=0, button_color="black"),sg.Button('>', pad=0,button_color="black"),sg.Button('C', pad=0,button_color="bisque"),sg.Button('D', pad=0,button_color="bisque"),sg.Button('E', pad=0,button_color="bisque"),
     sg.Button('F', pad=0,button_color="bisque"),sg.Button('G', pad=0,button_color="bisque"),sg.Button('A', pad=0,button_color="bisque"),sg.Button('B', pad=0,button_color="bisque")],
-    [sg.Text("Octave = 4", key='-OCTAVE-')]
+    [sg.Text("Octave = 4", key='-OCTAVE-')],
+    [sg.Graph((640, 480), (0, 0), (640, 480), key="-GRAPH-", background_color='black')],
 ]
 
 
@@ -40,6 +42,10 @@ wave_pos = 0
 
 playingAudio = False
 
+
+visualizerSamples = []
+visualizerSampleLength = 1 #secons
+visualizerPhase = 0
 
 frequency = 440  # Hz
 duration = 1    # seconds
@@ -91,13 +97,16 @@ def soundFunction(i, freq, amp, phase, waveform, custom):
 def soundCallBack(in_data, frame_count, time_info, status):
     global wave_pos
     global frequency, amplitude, phase
+    global visualizerSamples
 
     buffer_end = wave_pos + frame_count
     out_data = b''
+    visualizerSamples = []
     for i in range(wave_pos, buffer_end):
         sample = masterSoundFunction(i, frequency, amplitude, phase)
         sample_data = struct.pack('h', int(sample * maxVolume))
         out_data += sample_data
+        visualizerSamples.append(sample)
     
     wave_pos = buffer_end
     return (out_data, pyaudio.paContinue)
@@ -182,17 +191,18 @@ def generate_waveform(duration, sample_rate):
 
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
+graph = window['-GRAPH-']
 #program event loop
 while True:
-    event, values = window.read()
+    event, values = window.read(timeout=0)
+    # If user closes window or clicks 'Exit', exit the program
+    if event == sg.WINDOW_CLOSED or event == 'Exit' or None:
+        break
     frequency = values['-FREQUENCY-']
     amplitude = values['-AMPLITUDE-']/100
     phase = values['-PHASE-']
     custom = values['-CUSTOM-']
     waveform = values['-WAVEFORM-']
-    # If user closes window or clicks 'Exit', exit the program
-    if event == sg.WINDOW_CLOSED or event == 'Exit':
-        break
    
     #handles visibility of elements for use when custom is selected as waveform type
     if event == '-WAVEFORM-':
@@ -207,6 +217,18 @@ while True:
             window['-CUSTOMTIP2-'].update(visible=False)
         window['-LOG-'].update(value=waveform + " played at " + str(frequency) + "hz!")
         masterSoundFunction = soundFunctions[waveform]
+    
+    #handles the graphing of the waveform
+    graph.erase()
+    if playingAudio:
+        num_samples = len(visualizerSamples)
+        for sample in range(1,num_samples-1):
+            x1 = sample/num_samples * 640
+            y1 = ((visualizerSamples[sample])) * 480 + 480/2
+            x2 = (sample+1)/num_samples * 640
+            y2 = ((visualizerSamples[sample+1])) * 480 + 480/2
+            # print(f"({x1},{y1}),({x2},{y2})")
+            graph.draw_line((x1,y1),(x2,y2),color="green", width=10)
 
     # If user clicks 'start' start the calculations and waveform
     if event == 'Start':
@@ -256,20 +278,5 @@ while True:
         
 # Close the window and exit the program
 window.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
