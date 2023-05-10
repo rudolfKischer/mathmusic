@@ -26,7 +26,17 @@ layout = [
     [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')],
     [sg.Button('<', pad=0, button_color="black"),sg.Button('>', pad=0,button_color="black"),sg.Button('C', pad=0,button_color="bisque"),sg.Button('D', pad=0,button_color="bisque"),sg.Button('E', pad=0,button_color="bisque"),
     sg.Button('F', pad=0,button_color="bisque"),sg.Button('G', pad=0,button_color="bisque"),sg.Button('A', pad=0,button_color="bisque"),sg.Button('B', pad=0,button_color="bisque")],
-    [sg.Text("Octave = 4", key='-OCTAVE-')]
+    [sg.Text("Octave = 4", key='-OCTAVE-')],
+    [sg.Text('wave addition method')],
+    [sg.Combo(['none','Additive','FMod', 'AMod'], default_value="Additive", key='-ADDITION_METHOD-',enable_events=True)],
+    [sg.Text('Select waveform 2:')],
+    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM2-',enable_events=True)],
+    [sg.Text("Frequency")],
+    [sg.Slider(range=(125, 20000), key='-FREQUENCY2-', orientation='h', enable_events=True)],
+    [sg.Text("Amplitude")],
+    [sg.Slider(range=(1, 100), key='-AMPLITUDE2-', orientation='h', default_value=50, enable_events=True)],
+    [sg.Text("Phase")],
+    [sg.Slider(range=(0, 4), key='-PHASE2-', orientation='h')],
 ]
 
 
@@ -40,6 +50,10 @@ wave_pos = 0
 
 playingAudio = False
 
+#make these as lists for ability to do multiple waveforms
+frequencies = [440, 440]
+amplitudes = [0.5,0.5]
+phases =[1,1]
 
 frequency = 440  # Hz
 duration = 1    # seconds
@@ -53,6 +67,8 @@ customFunctionString = "amp*math.sin(2*math.pi*freq*i/sample_rate)"
 
 octave = 4
 noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
+
+
 #i is input, f is freuency, a is amplitude
 def sineWAV(i, freq, amp, phase):
     return amp * math.sin(2.0 * math.pi * freq * (i + phase) / sample_rate)
@@ -83,9 +99,23 @@ soundFunctions = {
     "Triangle": triangleWAV,
     "Custom": customWAV
 }
-masterSoundFunction = soundFunctions["Sine"]
 
-def soundFunction(i, freq, amp, phase, waveform, custom):
+#assigned to sin as placeholder
+masterSoundFunction = soundFunctions["Sine"]
+mastersoundFunctions = [soundFunctions["Sine"],soundFunctions["Sawtooth"]]
+#make freq amp and phase lists and append for each added waveform
+def soundFunctionMult(i,frequencies,amplitudes,phases,waveNumber,waveforms):
+    x = 0
+    global masterSoundFunction
+    for x in (waveNumber - 1):
+        freq = frequencies[i]
+        amp = amplitudes[i]
+        phase = phases[i]
+        masterSoundFunction = mastersoundFunctions[i]
+        return soundFunction(i,freq,amp,phase)
+    
+
+def soundFunction(i, freq, amp, phase):
     return masterSoundFunction(i, freq, amp, phase)
         
 def soundCallBack(in_data, frame_count, time_info, status):
@@ -101,6 +131,7 @@ def soundCallBack(in_data, frame_count, time_info, status):
     
     wave_pos = buffer_end
     return (out_data, pyaudio.paContinue)
+
 #checks if a note was pressed
 def pianoHandler():
     if event == '<' or event == '>':
@@ -119,8 +150,6 @@ def pianoHandler():
         
         noteFreq = 16.35*(2**(1/12))**noteNum
         window['-FREQUENCY-'].update(value=noteFreq)
-        
-
 
 def getNoteNum(note):
     
@@ -134,9 +163,6 @@ def getNoteNum(note):
         "B" : 11,
     }
     return noteMap[note]+12*octave
-    
-        
-    
 
 def plotWaveform(data, audio_data):
 
@@ -171,6 +197,7 @@ def plotWaveform(data, audio_data):
     # Show the figure
     plt.show()
        # Define the function that generates the waveform
+
 def generate_waveform(duration, sample_rate):
             num_samples = int(sample_rate * duration)
             data = []
@@ -178,7 +205,6 @@ def generate_waveform(duration, sample_rate):
                 sample = soundFunction(i, frequency, amplitude, phase, waveform, custom ) * maxVolume
                 data.append(int(sample))
             return data
-
 
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
@@ -190,10 +216,11 @@ while True:
     phase = values['-PHASE-']
     custom = values['-CUSTOM-']
     waveform = values['-WAVEFORM-']
+    additionMethod = values['-ADDITION_METHOD-']
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit':
         break
-   
+    pianoHandler()
     #handles visibility of elements for use when custom is selected as waveform type
     if event == '-WAVEFORM-':
         if(waveform == "Custom"): 
@@ -246,14 +273,7 @@ while True:
              plotWaveform(data, audio_data)
         except:
             window['-LOG-'].update(value="No Data to Graph")
-    
-    
-    pianoHandler()
-        
-        
-    
-
-        
+           
 # Close the window and exit the program
 window.close()
 
