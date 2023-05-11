@@ -9,6 +9,7 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import time
 import matplotlib.pyplot as plt
+import keyboard
 
 #GUI PARAMS
 # Define the layout of the window
@@ -56,7 +57,6 @@ phase = 0.0
 windowWaveNumber = 1
 masterSoundFunction = None
 customFunctionString = "amp*math.sin(2*math.pi*freq*i/sample_rate)"
-
 octave = 4
 noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
 #i is input, f is freuency, a is amplitude
@@ -118,20 +118,20 @@ def pianoHandler():
             octave = octave + 1    
         elif event == '<' and octave > 0:
             octave = octave - 1
-        window['-OCTAVE-'].update(value="Octave = " + str(octave))
+        
 
 
 
     if event in noteButtons:
         
-        noteNum = getNoteNum(event)
+        noteNum = getNoteNumFromButton(event)
         
         noteFreq = 16.35*(2**(1/12))**noteNum
         window['-FREQUENCY-'].update(value=noteFreq)
         
 
 
-def getNoteNum(note):
+def getNoteNumFromButton(note):
     
     noteMap = { 
         "C" : 0,
@@ -210,17 +210,91 @@ def generate_waveform(duration, sample_rate):
                 data.append(int(sample))
             return data
 
+def octaveChange(x):
+    global octave
+    octave = octave + x
+
+    
+keyboard.on_press_key("a", lambda _:sendNoteFromKeyBoard("a"))
+keyboard.on_press_key("s", lambda _:sendNoteFromKeyBoard("s"))
+keyboard.on_press_key("d", lambda _:sendNoteFromKeyBoard("d"))
+keyboard.on_press_key("f", lambda _:sendNoteFromKeyBoard("f"))
+keyboard.on_press_key("g", lambda _:sendNoteFromKeyBoard("g"))
+keyboard.on_press_key("h", lambda _:sendNoteFromKeyBoard("h"))
+keyboard.on_press_key("j", lambda _:sendNoteFromKeyBoard("j"))
+keyboard.on_press_key("w", lambda _:sendNoteFromKeyBoard("w"))
+keyboard.on_press_key("e", lambda _:sendNoteFromKeyBoard("e"))
+keyboard.on_press_key("t", lambda _:sendNoteFromKeyBoard("t"))
+keyboard.on_press_key("y", lambda _:sendNoteFromKeyBoard("y"))
+keyboard.on_press_key("u", lambda _:sendNoteFromKeyBoard("u"))
+keyboard.on_press_key("k", lambda _:sendNoteFromKeyBoard("k"))
+keyboard.on_press_key("o", lambda _:sendNoteFromKeyBoard("o"))
+keyboard.on_press_key("l", lambda _:sendNoteFromKeyBoard("l"))
+keyboard.on_press_key("p", lambda _:sendNoteFromKeyBoard("p"))
+keyboard.on_press_key(";", lambda _:sendNoteFromKeyBoard(";"))
+keyboard.on_press_key("'", lambda _:sendNoteFromKeyBoard("'"))
+keyboard.on_press_key("]", lambda _:sendNoteFromKeyBoard("]"))
+keyboard.on_press_key("z", lambda _:octaveChange(-1))
+keyboard.on_press_key("x", lambda _:octaveChange(+1))
+
+def sendNoteFromKeyBoard(key):
+    global frequency
+    noteNum = getNoteNumFromKey(key)
+    
+    noteFreq = 16.35*(2**(1/12))**noteNum
+    frequency = noteFreq
+
+def getNoteNumFromKey(key):
+    
+    noteMap = { 
+        "a" : 0,
+        "w" : 1,
+        "s" : 2,
+        "e" : 3,
+        "d" : 4,
+        "f" : 5,
+        "t" : 6,
+        "g" : 7,
+        "y" : 8,
+        "h" : 9,
+        "u" : 10,
+        "j" : 11,
+        "k" : 12,
+        "o" : 13,
+        "l" : 14,
+        "p" : 15,
+        ";" : 16,
+        "'" : 17,
+        "]" : 18
+    }
+    
+    return noteMap[key]+12*octave
+    
+def updateSlider(noteFreq):
+    window['-FREQUENCY-'].update(value=noteFreq)
 
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
 graph = window['-GRAPH-']
+
+
+
 #program event loop
 while True:
     event, values = window.read(timeout=0)
+    window['-OCTAVE-'].update(value="Octave = " + str(octave))
+    
+        
+
+    
+    
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit' or None:
         break
-    frequency = values['-FREQUENCY-']
+    
+    updateSlider(frequency)
+
+
     amplitude = values['-AMPLITUDE-']/100
     phase = values['-PHASE-']
     custom = values['-CUSTOM-']
