@@ -70,7 +70,7 @@ def squareWAV(i, freq, amp, phase):
     return -amp
 def sawtoothWAV(i, freq, amp , phase):
     #wouldint x = y mod frequencywork just as well?
-    return amp*((freq/2*(i+phase)/sample_rate)%1)-0.5*amp
+    return 2*amp*((freq/2*(i+phase)/sample_rate)%1)-amp
 def triangleWAV(i, freq, amp, phase):
     result = 4*amp*(abs(((freq*(i+phase)/sample_rate)%1)-1/2)-1/4)
     return result
@@ -284,7 +284,8 @@ while True:
     event, values = window.read(timeout=0)
     window['-OCTAVE-'].update(value="Octave = " + str(octave))
     
-        
+    if event == '-FREQUENCY-':
+        frequency = values['-FREQUENCY-']
 
     
     
