@@ -9,6 +9,7 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import time
 import matplotlib.pyplot as plt
+import keyboard
 
 #GUI PARAMS
 # Define the layout of the window
@@ -56,7 +57,7 @@ phase = 0.0
 windowWaveNumber = 1
 masterSoundFunction = None
 customFunctionString = "amp*math.sin(2*math.pi*freq*i/sample_rate)"
-
+pianoKeys = ["a","s","d","f","h","j","k"]
 octave = 4
 noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
 #i is input, f is freuency, a is amplitude
@@ -189,12 +190,24 @@ def generate_waveform(duration, sample_rate):
             return data
 
 
+for x in pianoKeys:
+    print(x)
+    keyboard.on_press_key(x, lambda _:print(x))
+
+
+
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
 graph = window['-GRAPH-']
 #program event loop
 while True:
     event, values = window.read(timeout=0)
+
+    
+        
+
+    
+    
     # If user closes window or clicks 'Exit', exit the program
     if event == sg.WINDOW_CLOSED or event == 'Exit' or None:
         break
