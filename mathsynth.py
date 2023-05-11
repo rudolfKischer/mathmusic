@@ -181,6 +181,28 @@ def plotWaveform(data, audio_data):
     # Show the figure
     plt.show()
        # Define the function that generates the waveform
+
+def draw_visualizer_line(graph, start, end):
+        # Convert the start and end points to numpy arrays
+    start = np.array(start)
+    end = np.array(end)
+
+    # Calculate the direction vector of the line
+    direction = end - start
+
+    # Normalize the direction vector
+    norm = np.linalg.norm(direction)
+    if norm == 0:
+        return
+    direction /= norm
+
+    # Extend the line by 10 pixels in its direction of travel
+    extension = 5
+    extended_end = end + extension * direction
+    graph.draw_line(tuple(start), tuple(extended_end),color="green", width=5)
+    
+
+
 def generate_waveform(duration, sample_rate):
             num_samples = int(sample_rate * duration)
             data = []
@@ -232,16 +254,18 @@ while True:
         masterSoundFunction = soundFunctions[waveform]
     
     #handles the graphing of the waveform
-    graph.erase()
+
     if playingAudio:
+        graph.erase()
         num_samples = len(visualizerSamples)
-        for sample in range(1,num_samples-1):
+        for sample in range(1,num_samples-10):
             x1 = sample/num_samples * 640
             y1 = ((visualizerSamples[sample])) * 480 + 480/2
             x2 = (sample+1)/num_samples * 640
             y2 = ((visualizerSamples[sample+1])) * 480 + 480/2
             # print(f"({x1},{y1}),({x2},{y2})")
-            graph.draw_line((x1,y1),(x2,y2),color="green", width=10)
+            draw_visualizer_line(graph, (x1,y1),(x2,y2))
+            
 
     # If user clicks 'start' start the calculations and waveform
     if event == 'Start':
