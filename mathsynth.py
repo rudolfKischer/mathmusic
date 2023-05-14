@@ -9,17 +9,32 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import time
 import matplotlib.pyplot as plt
+import pynput
 import keyboard
+import threading
 
 # Define the layout of the GUI
+
 layout = [
-    [sg.Text('Select a waveform:')],
+    
+    [sg.Text('Select a waveform:'),
+     sg.Column([
+         [sg.Text('Osci1'),sg.Button('Mute',key='-muteOsci1-'),sg.Button('Modify',key='-modifyOsci1-')], 
+         [sg.Text('Osci2'),sg.Button('Mute',key='-muteOsci2-'),sg.Button('Modify',key='-modifyOsci2-')],
+         [sg.Text('Osci3'),sg.Button('Mute',key='-muteOsci3-'),sg.Button('Modify',key='-modifyOsci3-')],
+         [sg.Text('Osci4'),sg.Button('Mute',key='-muteOsci4-'),sg.Button('Modify',key='-modifyOsci4-')]                       
+                ])],
+
+
+
     [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+    [sg.Text('Select your Oscilator')],
+    [sg.Combo([1,2,3,4], default_value=1, key='-OsciNumber-',enable_events=True)],
     [sg.Text("Enter a custom function here",visible=False,key="-CUSTOMTIP1-")],
     [sg.Text("freq=freq, amp = amplitude , phase= phase",visible=False, key="-CUSTOMTIP2-")],
     [sg.InputText("amp*math.sin(2*math.pi*freq*i/sample_rate)", key="-CUSTOM-",visible=False)],
-    [sg.Text("Frequency")],
-    [sg.Slider(range=(125, 20000), key='-FREQUENCY-', orientation='h', enable_events=True)],
+    [sg.Text("Pitch")],
+    [sg.Slider(range=(-1200, 1200), key='-FREQUENCY-', orientation='h', enable_events=True,default_value=0,tick_interval=5)],
     [sg.Text("Amplitude")],
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50, enable_events=True)],
     [sg.Text("Phase")],
@@ -32,6 +47,7 @@ layout = [
 ]
 
 #Variables for Sampling playing and graphic 
+
 prevTime = time.time()
 sample_width = 2
 buffer_size = 1024
@@ -48,6 +64,7 @@ visualizerPhase = 0
 
 #variabled related to Frequency
 frequency = 440  # Hz
+centOffset = 0
 amplitude = 1.0
 maxVolume = 32767
 phase = 0.0
@@ -219,7 +236,26 @@ keyboard.on_press_key("'", lambda _:sendNoteFromKeyBoard("'"))
 keyboard.on_press_key("]", lambda _:sendNoteFromKeyBoard("]"))
 keyboard.on_press_key("z", lambda _:octaveChange(-1))
 keyboard.on_press_key("x", lambda _:octaveChange(+1))
+
+def on_press(key):
+            sendNoteFromKeyBoard[key.char]
+            print(key.char)
+
+def start_listener():
+    with pynput.keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+listener_thread = threading.Thread(target=start_listener)
+listener_thread.start()
+
+
 #reads keyboard and update frequency
+def getFrequencyOffset(cent,freq):
+    
+    freqOffset = freq*(2**(cent/1200))
+
+   
+    return freqOffset
 def sendNoteFromKeyBoard(key):
     global frequency
     def getNoteNumFromKey(key):
@@ -245,19 +281,23 @@ def sendNoteFromKeyBoard(key):
             "'" : 17,
             "]" : 18
         }
-        
-        return noteMap[key]+12*octave
+        if(noteMap.get(key)):
+
+            return noteMap[key]+12*octave
+        return noteNum
     noteNum = getNoteNumFromKey(key)
     
     noteFreq = 16.35*(2**(1/12))**noteNum
-    frequency = noteFreq
+    
+    frequencyOffset = getFrequencyOffset(centOffset,noteFreq)
+    frequency = noteFreq + frequencyOffset
+
 # Call to change octave by x octaves
 def octaveChange(x):
     global octave
     octave = octave + x
 #call to update the main frequency value by noteFreq
-def updateSlider(noteFreq):
-    window['-FREQUENCY-'].update(value=noteFreq)
+
 
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
@@ -265,11 +305,15 @@ graph = window['-GRAPH-']
 
 #event loop
 while True:
+    
     event, values = window.read(timeout=0)
     window['-OCTAVE-'].update(value="Octave = " + str(octave))
     
     if event == '-FREQUENCY-':
-        frequency = values['-FREQUENCY-']
+        
+        centOffset = values['-FREQUENCY-']
+       
+        
 
     
     
@@ -277,7 +321,7 @@ while True:
     if event == sg.WINDOW_CLOSED or event == 'Exit' or None:
         break
     
-    updateSlider(frequency)
+
 
 
     amplitude = values['-AMPLITUDE-']/100
