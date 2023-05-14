@@ -61,7 +61,7 @@ octave = 4
 noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
 #i is input, f is freuency, a is amplitude
 def sineWAV(i, freq, amp, phase):
-    return amp * math.sin(2.0 * math.pi * freq * (i + phase) / sample_rate)
+    return amp * math.sin(2.0 * math.pi * freq * i)
 
 def squareWAV(i, freq, amp, phase):
     result = sineWAV(i, freq, amp, phase)
@@ -70,9 +70,9 @@ def squareWAV(i, freq, amp, phase):
     return -amp
 def sawtoothWAV(i, freq, amp , phase):
     #wouldint x = y mod frequencywork just as well?
-    return amp*((freq/2*(i+phase)/sample_rate)%1)-0.5*amp
+    return amp*((freq/2*i)%1)-0.5*amp
 def triangleWAV(i, freq, amp, phase):
-    result = 4*amp*(abs(((freq*(i+phase)/sample_rate)%1)-1/2)-1/4)
+    result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
     return result
 
 def customWAV(i, freq, amp, phase):
@@ -91,8 +91,9 @@ soundFunctions = {
 }
 masterSoundFunction = soundFunctions["Sine"]
 
-def soundFunction(i, freq, amp, phase, waveform, custom):
-    return masterSoundFunction(i, freq, amp, phase)
+def soundFunction(i, freq, amp, phase):
+    x = (i + phase) / sample_rate
+    return masterSoundFunction(x, freq, amp, phase)
         
 def soundCallBack(in_data, frame_count, time_info, status):
     global wave_pos
@@ -103,7 +104,7 @@ def soundCallBack(in_data, frame_count, time_info, status):
     out_data = b''
     visualizerSamples = []
     for i in range(wave_pos, buffer_end):
-        sample = masterSoundFunction(i, frequency, amplitude, phase)
+        sample = soundFunction(i, frequency, amplitude, phase)
         sample_data = struct.pack('h', int(sample * maxVolume))
         out_data += sample_data
         visualizerSamples.append(sample)
@@ -206,7 +207,7 @@ def generate_waveform(duration, sample_rate):
             num_samples = int(sample_rate * duration)
             data = []
             for i in range(num_samples):
-                sample = soundFunction(i, frequency, amplitude, phase, waveform, custom ) * maxVolume
+                sample = soundFunction(i, frequency, amplitude, phase) * maxVolume
                 data.append(int(sample))
             return data
 
@@ -215,27 +216,27 @@ def octaveChange(x):
     octave = octave + x
 
     
-keyboard.on_press_key("a", lambda _:sendNoteFromKeyBoard("a"))
-keyboard.on_press_key("s", lambda _:sendNoteFromKeyBoard("s"))
-keyboard.on_press_key("d", lambda _:sendNoteFromKeyBoard("d"))
-keyboard.on_press_key("f", lambda _:sendNoteFromKeyBoard("f"))
-keyboard.on_press_key("g", lambda _:sendNoteFromKeyBoard("g"))
-keyboard.on_press_key("h", lambda _:sendNoteFromKeyBoard("h"))
-keyboard.on_press_key("j", lambda _:sendNoteFromKeyBoard("j"))
-keyboard.on_press_key("w", lambda _:sendNoteFromKeyBoard("w"))
-keyboard.on_press_key("e", lambda _:sendNoteFromKeyBoard("e"))
-keyboard.on_press_key("t", lambda _:sendNoteFromKeyBoard("t"))
-keyboard.on_press_key("y", lambda _:sendNoteFromKeyBoard("y"))
-keyboard.on_press_key("u", lambda _:sendNoteFromKeyBoard("u"))
-keyboard.on_press_key("k", lambda _:sendNoteFromKeyBoard("k"))
-keyboard.on_press_key("o", lambda _:sendNoteFromKeyBoard("o"))
-keyboard.on_press_key("l", lambda _:sendNoteFromKeyBoard("l"))
-keyboard.on_press_key("p", lambda _:sendNoteFromKeyBoard("p"))
-keyboard.on_press_key(";", lambda _:sendNoteFromKeyBoard(";"))
-keyboard.on_press_key("'", lambda _:sendNoteFromKeyBoard("'"))
-keyboard.on_press_key("]", lambda _:sendNoteFromKeyBoard("]"))
-keyboard.on_press_key("z", lambda _:octaveChange(-1))
-keyboard.on_press_key("x", lambda _:octaveChange(+1))
+# keyboard.on_press_key("a", lambda _:sendNoteFromKeyBoard("a"))
+# keyboard.on_press_key("s", lambda _:sendNoteFromKeyBoard("s"))
+# keyboard.on_press_key("d", lambda _:sendNoteFromKeyBoard("d"))
+# keyboard.on_press_key("f", lambda _:sendNoteFromKeyBoard("f"))
+# keyboard.on_press_key("g", lambda _:sendNoteFromKeyBoard("g"))
+# keyboard.on_press_key("h", lambda _:sendNoteFromKeyBoard("h"))
+# keyboard.on_press_key("j", lambda _:sendNoteFromKeyBoard("j"))
+# keyboard.on_press_key("w", lambda _:sendNoteFromKeyBoard("w"))
+# keyboard.on_press_key("e", lambda _:sendNoteFromKeyBoard("e"))
+# keyboard.on_press_key("t", lambda _:sendNoteFromKeyBoard("t"))
+# keyboard.on_press_key("y", lambda _:sendNoteFromKeyBoard("y"))
+# keyboard.on_press_key("u", lambda _:sendNoteFromKeyBoard("u"))
+# keyboard.on_press_key("k", lambda _:sendNoteFromKeyBoard("k"))
+# keyboard.on_press_key("o", lambda _:sendNoteFromKeyBoard("o"))
+# keyboard.on_press_key("l", lambda _:sendNoteFromKeyBoard("l"))
+# keyboard.on_press_key("p", lambda _:sendNoteFromKeyBoard("p"))
+# keyboard.on_press_key(";", lambda _:sendNoteFromKeyBoard(";"))
+# keyboard.on_press_key("'", lambda _:sendNoteFromKeyBoard("'"))
+# keyboard.on_press_key("]", lambda _:sendNoteFromKeyBoard("]"))
+# keyboard.on_press_key("z", lambda _:octaveChange(-1))
+# keyboard.on_press_key("x", lambda _:octaveChange(+1))
 
 def sendNoteFromKeyBoard(key):
     global frequency
