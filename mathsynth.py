@@ -9,18 +9,31 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import time
 import matplotlib.pyplot as plt
-import keyboard
+import pynput
+import threading
 
-#GUI PARAMS
-# Define the layout of the window
+# Define the layout of the GUI
+
 layout = [
-    [sg.Text('Select a waveform:')],
+    
+    [sg.Text('Select a waveform:'),
+     sg.Column([
+         [sg.Text('Osci1'),sg.Button('Mute',key='-muteOsci1-'),sg.Button('Modify',key='-modifyOsci1-')], 
+         [sg.Text('Osci2'),sg.Button('Mute',key='-muteOsci2-'),sg.Button('Modify',key='-modifyOsci2-')],
+         [sg.Text('Osci3'),sg.Button('Mute',key='-muteOsci3-'),sg.Button('Modify',key='-modifyOsci3-')],
+         [sg.Text('Osci4'),sg.Button('Mute',key='-muteOsci4-'),sg.Button('Modify',key='-modifyOsci4-')]                       
+                ])],
+
+
+
     [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+    [sg.Text('Select your Oscilator')],
+    [sg.Combo([1,2,3,4], default_value=1, key='-OsciNumber-',enable_events=True)],
     [sg.Text("Enter a custom function here",visible=False,key="-CUSTOMTIP1-")],
     [sg.Text("freq=freq, amp = amplitude , phase= phase",visible=False, key="-CUSTOMTIP2-")],
     [sg.InputText("amp*math.sin(2*math.pi*freq*i/sample_rate)", key="-CUSTOM-",visible=False)],
-    [sg.Text("Frequency")],
-    [sg.Slider(range=(125, 20000), key='-FREQUENCY-', orientation='h', enable_events=True)],
+    [sg.Text("Pitch")],
+    [sg.Slider(range=(-1200, 1200), key='-FREQUENCY-', orientation='h', enable_events=True,default_value=0,tick_interval=5)],
     [sg.Text("Amplitude")],
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50, enable_events=True)],
     [sg.Text("Phase")],
@@ -32,34 +45,34 @@ layout = [
     [sg.Graph((640, 480), (0, 0), (640, 480), key="-GRAPH-", background_color='black')],
 ]
 
+#Variables for Sampling playing and graphic 
 
-
-
-# Define the parameters of the audio file
 prevTime = time.time()
 sample_width = 2
 buffer_size = 1024
 wave_pos = 0
+duration = 1    # seconds
+sample_rate = 44100
+windowWaveNumber = 1
 
 playingAudio = False
 
-
 visualizerSamples = []
-visualizerSampleLength = 1 #secons
+visualizerSampleLength = 1 #seconds
 visualizerPhase = 0
 
+#variabled related to Frequency
 frequency = 440  # Hz
-duration = 1    # seconds
-sample_rate = 44100
+centOffset = 0
 amplitude = 1.0
 maxVolume = 32767
 phase = 0.0
-windowWaveNumber = 1
 masterSoundFunction = None
 customFunctionString = "amp*math.sin(2*math.pi*freq*i/sample_rate)"
 octave = 4
 noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
-#i is input, f is freuency, a is amplitude
+
+#sound functions
 def sineWAV(i, freq, amp, phase):
     return amp * math.sin(2.0 * math.pi * freq * i)
 
@@ -74,14 +87,13 @@ def sawtoothWAV(i, freq, amp , phase):
 def triangleWAV(i, freq, amp, phase):
     result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
     return result
-
 def customWAV(i, freq, amp, phase):
     try:
         return eval(customFunctionString)
     except:
         window['-LOG-'].update(value="BAD FUNCTION, goodboy saw played")
         return sawtoothWAV(i, freq, amp, phase)
-    
+#soundFunction Dictionary
 soundFunctions = {
     "Sine": sineWAV,
     "Square": squareWAV,
@@ -89,6 +101,7 @@ soundFunctions = {
     "Triangle": triangleWAV,
     "Custom": customWAV
 }
+#variabe for what waveform is set
 masterSoundFunction = soundFunctions["Sine"]
 
 def soundFunction(i, freq, amp, phase):
@@ -96,6 +109,7 @@ def soundFunction(i, freq, amp, phase):
     return masterSoundFunction(x, freq, amp, phase)
         
 def soundCallBack(in_data, frame_count, time_info, status):
+   
     global wave_pos
     global frequency, amplitude, phase
     global visualizerSamples
@@ -111,8 +125,20 @@ def soundCallBack(in_data, frame_count, time_info, status):
     
     wave_pos = buffer_end
     return (out_data, pyaudio.paContinue)
-#checks if a note was pressed
+#checks if a note was pressed and udpates frequency
 def pianoHandler():
+    def getNoteNumFromButton(note):
+    
+        noteMap = { 
+            "C" : 0,
+            "D" : 2,
+            "E" : 4,
+            "F" : 5,
+            "G" : 7,
+            "A" : 9,
+            "B" : 11,
+        }
+        return noteMap[note]+12*octave
     if event == '<' or event == '>':
         global octave
         if event == '>' and octave < 10:
@@ -130,24 +156,6 @@ def pianoHandler():
         noteFreq = 16.35*(2**(1/12))**noteNum
         window['-FREQUENCY-'].update(value=noteFreq)
         
-
-
-def getNoteNumFromButton(note):
-    
-    noteMap = { 
-        "C" : 0,
-        "D" : 2,
-        "E" : 4,
-        "F" : 5,
-        "G" : 7,
-        "A" : 9,
-        "B" : 11,
-    }
-    return noteMap[note]+12*octave
-    
-        
-    
-
 def plotWaveform(data, audio_data):
 
     # Convert the audio data to a numpy array
@@ -200,9 +208,7 @@ def draw_visualizer_line(graph, start, end):
     extension = 5
     extended_end = end + extension * direction
     graph.draw_line(tuple(start), tuple(extended_end),color="green", width=5)
-    
-
-
+#generates data from waveform equation   
 def generate_waveform(duration, sample_rate):
             num_samples = int(sample_rate * duration)
             data = []
@@ -210,81 +216,97 @@ def generate_waveform(duration, sample_rate):
                 sample = soundFunction(i, frequency, amplitude, phase) * maxVolume
                 data.append(int(sample))
             return data
+    
 
+noteMap = { 
+            "a" : 0,
+            "w" : 1,
+            "s" : 2,
+            "e" : 3,
+            "d" : 4,
+            "f" : 5,
+            "t" : 6,
+            "g" : 7,
+            "y" : 8,
+            "h" : 9,
+            "u" : 10,
+            "j" : 11,
+            "k" : 12,
+            "o" : 13,
+            "l" : 14,
+            "p" : 15,
+            ";" : 16,
+            "'" : 17,
+            "]" : 18,
+            "z" : "down",
+            "x" : "up"
+        }
+
+def on_press(key): 
+            
+    try:
+            if key.char in noteMap.keys(): 
+
+                if noteMap[key.char] == "down":
+                    octaveChange(-1)
+                    return False 
+                if noteMap[key.char] == "up":
+                    octaveChange(1)
+                else:
+                    sendNoteFromKeyBoard(key.char)
+
+    except AttributeError:
+            pass
+
+listener_thread = pynput.keyboard.Listener(on_press=on_press,suppress = True)
+listener_thread.start()
+
+
+
+
+#reads keyboard and update frequency
+def getFrequencyOffset(cent,freq):
+    
+    freqOffset = freq*(2**(cent/1200))
+
+   
+    return freqOffset
+def sendNoteFromKeyBoard(key):
+    global frequency
+    def getNoteNumFromKey(key):
+       
+
+            return noteMap[key]+12*octave
+    if(getNoteNumFromKey != False):
+        
+        noteNum = getNoteNumFromKey(key)
+        
+        noteFreq = 16.35*(2**(1/12))**noteNum
+        
+        frequencyOffset = getFrequencyOffset(centOffset,noteFreq)
+        frequency = noteFreq + frequencyOffset
+
+# Call to change octave by x octaves
 def octaveChange(x):
     global octave
     octave = octave + x
+#call to update the main frequency value by noteFreq
 
-    
-# keyboard.on_press_key("a", lambda _:sendNoteFromKeyBoard("a"))
-# keyboard.on_press_key("s", lambda _:sendNoteFromKeyBoard("s"))
-# keyboard.on_press_key("d", lambda _:sendNoteFromKeyBoard("d"))
-# keyboard.on_press_key("f", lambda _:sendNoteFromKeyBoard("f"))
-# keyboard.on_press_key("g", lambda _:sendNoteFromKeyBoard("g"))
-# keyboard.on_press_key("h", lambda _:sendNoteFromKeyBoard("h"))
-# keyboard.on_press_key("j", lambda _:sendNoteFromKeyBoard("j"))
-# keyboard.on_press_key("w", lambda _:sendNoteFromKeyBoard("w"))
-# keyboard.on_press_key("e", lambda _:sendNoteFromKeyBoard("e"))
-# keyboard.on_press_key("t", lambda _:sendNoteFromKeyBoard("t"))
-# keyboard.on_press_key("y", lambda _:sendNoteFromKeyBoard("y"))
-# keyboard.on_press_key("u", lambda _:sendNoteFromKeyBoard("u"))
-# keyboard.on_press_key("k", lambda _:sendNoteFromKeyBoard("k"))
-# keyboard.on_press_key("o", lambda _:sendNoteFromKeyBoard("o"))
-# keyboard.on_press_key("l", lambda _:sendNoteFromKeyBoard("l"))
-# keyboard.on_press_key("p", lambda _:sendNoteFromKeyBoard("p"))
-# keyboard.on_press_key(";", lambda _:sendNoteFromKeyBoard(";"))
-# keyboard.on_press_key("'", lambda _:sendNoteFromKeyBoard("'"))
-# keyboard.on_press_key("]", lambda _:sendNoteFromKeyBoard("]"))
-# keyboard.on_press_key("z", lambda _:octaveChange(-1))
-# keyboard.on_press_key("x", lambda _:octaveChange(+1))
-
-def sendNoteFromKeyBoard(key):
-    global frequency
-    noteNum = getNoteNumFromKey(key)
-    
-    noteFreq = 16.35*(2**(1/12))**noteNum
-    frequency = noteFreq
-
-def getNoteNumFromKey(key):
-    
-    noteMap = { 
-        "a" : 0,
-        "w" : 1,
-        "s" : 2,
-        "e" : 3,
-        "d" : 4,
-        "f" : 5,
-        "t" : 6,
-        "g" : 7,
-        "y" : 8,
-        "h" : 9,
-        "u" : 10,
-        "j" : 11,
-        "k" : 12,
-        "o" : 13,
-        "l" : 14,
-        "p" : 15,
-        ";" : 16,
-        "'" : 17,
-        "]" : 18
-    }
-    
-    return noteMap[key]+12*octave
-    
-def updateSlider(noteFreq):
-    window['-FREQUENCY-'].update(value=noteFreq)
 
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
 graph = window['-GRAPH-']
 
-
-
-#program event loop
+#event loop
 while True:
+    
     event, values = window.read(timeout=0)
     window['-OCTAVE-'].update(value="Octave = " + str(octave))
     
+    if event == '-FREQUENCY-':
+        
+        centOffset = values['-FREQUENCY-']
+       
         
 
     
@@ -293,7 +315,7 @@ while True:
     if event == sg.WINDOW_CLOSED or event == 'Exit' or None:
         break
     
-    updateSlider(frequency)
+
 
 
     amplitude = values['-AMPLITUDE-']/100
@@ -377,5 +399,6 @@ while True:
         
 # Close the window and exit the program
 window.close()
+pynput.keyboard.Listener.stop(self = listener_thread)
 
 
