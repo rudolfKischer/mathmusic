@@ -74,7 +74,8 @@ noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
 
 #sound functions
 def sineWAV(i, freq, amp, phase):
-    return amp * math.sin(2.0 * math.pi * freq * (i + phase) / sample_rate)
+    return amp * math.sin(2.0 * math.pi * freq * i)
+
 def squareWAV(i, freq, amp, phase):
     result = sineWAV(i, freq, amp, phase)
     if result > 0:
@@ -82,9 +83,9 @@ def squareWAV(i, freq, amp, phase):
     return -amp
 def sawtoothWAV(i, freq, amp , phase):
     #wouldint x = y mod frequencywork just as well?
-    return 2*amp*((freq/2*(i+phase)/sample_rate)%1)-amp
+    return amp*((freq/2*i)%1)-0.5*amp
 def triangleWAV(i, freq, amp, phase):
-    result = 4*amp*(abs(((freq*(i+phase)/sample_rate)%1)-1/2)-1/4)
+    result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
     return result
 def customWAV(i, freq, amp, phase):
     try:
@@ -102,10 +103,11 @@ soundFunctions = {
 }
 #variabe for what waveform is set
 masterSoundFunction = soundFunctions["Sine"]
-#redundant?
+
 def soundFunction(i, freq, amp, phase):
-    return masterSoundFunction(i, freq, amp, phase)
-#!!!!!!!! comment needed        
+    x = (i + phase) / sample_rate
+    return masterSoundFunction(x, freq, amp, phase)
+        
 def soundCallBack(in_data, frame_count, time_info, status):
    
     global wave_pos
@@ -116,7 +118,7 @@ def soundCallBack(in_data, frame_count, time_info, status):
     out_data = b''
     visualizerSamples = []
     for i in range(wave_pos, buffer_end):
-        sample = masterSoundFunction(i, frequency, amplitude, phase)
+        sample = soundFunction(i, frequency, amplitude, phase)
         sample_data = struct.pack('h', int(sample * maxVolume))
         out_data += sample_data
         visualizerSamples.append(sample)
@@ -211,7 +213,7 @@ def generate_waveform(duration, sample_rate):
             num_samples = int(sample_rate * duration)
             data = []
             for i in range(num_samples):
-                sample = soundFunction(i, frequency, amplitude, phase, waveform, custom ) * maxVolume
+                sample = soundFunction(i, frequency, amplitude, phase) * maxVolume
                 data.append(int(sample))
             return data
     
