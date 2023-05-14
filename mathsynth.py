@@ -396,10 +396,7 @@ while True:
 
         
 # Close the window and exit the program
-print("taco bell delphine")
 window.close()
-print("window closed")
-print("im the little guy")
 pynput.keyboard.Listener.stop(self = listener_thread)
 
 
