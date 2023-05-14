@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import time
 import matplotlib.pyplot as plt
 import pynput
-import keyboard
 import threading
 
 # Define the layout of the GUI
@@ -108,6 +107,7 @@ def soundFunction(i, freq, amp, phase):
     return masterSoundFunction(i, freq, amp, phase)
 #!!!!!!!! comment needed        
 def soundCallBack(in_data, frame_count, time_info, status):
+   
     global wave_pos
     global frequency, amplitude, phase
     global visualizerSamples
@@ -215,52 +215,8 @@ def generate_waveform(duration, sample_rate):
                 data.append(int(sample))
             return data
     
-keyboard.on_press_key("a", lambda _:sendNoteFromKeyBoard("a"))
-keyboard.on_press_key("s", lambda _:sendNoteFromKeyBoard("s"))
-keyboard.on_press_key("d", lambda _:sendNoteFromKeyBoard("d"))
-keyboard.on_press_key("f", lambda _:sendNoteFromKeyBoard("f"))
-keyboard.on_press_key("g", lambda _:sendNoteFromKeyBoard("g"))
-keyboard.on_press_key("h", lambda _:sendNoteFromKeyBoard("h"))
-keyboard.on_press_key("j", lambda _:sendNoteFromKeyBoard("j"))
-keyboard.on_press_key("w", lambda _:sendNoteFromKeyBoard("w"))
-keyboard.on_press_key("e", lambda _:sendNoteFromKeyBoard("e"))
-keyboard.on_press_key("t", lambda _:sendNoteFromKeyBoard("t"))
-keyboard.on_press_key("y", lambda _:sendNoteFromKeyBoard("y"))
-keyboard.on_press_key("u", lambda _:sendNoteFromKeyBoard("u"))
-keyboard.on_press_key("k", lambda _:sendNoteFromKeyBoard("k"))
-keyboard.on_press_key("o", lambda _:sendNoteFromKeyBoard("o"))
-keyboard.on_press_key("l", lambda _:sendNoteFromKeyBoard("l"))
-keyboard.on_press_key("p", lambda _:sendNoteFromKeyBoard("p"))
-keyboard.on_press_key(";", lambda _:sendNoteFromKeyBoard(";"))
-keyboard.on_press_key("'", lambda _:sendNoteFromKeyBoard("'"))
-keyboard.on_press_key("]", lambda _:sendNoteFromKeyBoard("]"))
-keyboard.on_press_key("z", lambda _:octaveChange(-1))
-keyboard.on_press_key("x", lambda _:octaveChange(+1))
 
-def on_press(key):
-            sendNoteFromKeyBoard[key.char]
-            print(key.char)
-
-def start_listener():
-    with pynput.keyboard.Listener(on_press=on_press) as listener:
-        listener.join()
-
-listener_thread = threading.Thread(target=start_listener)
-listener_thread.start()
-
-
-#reads keyboard and update frequency
-def getFrequencyOffset(cent,freq):
-    
-    freqOffset = freq*(2**(cent/1200))
-
-   
-    return freqOffset
-def sendNoteFromKeyBoard(key):
-    global frequency
-    def getNoteNumFromKey(key):
-    
-        noteMap = { 
+noteMap = { 
             "a" : 0,
             "w" : 1,
             "s" : 2,
@@ -279,18 +235,54 @@ def sendNoteFromKeyBoard(key):
             "p" : 15,
             ";" : 16,
             "'" : 17,
-            "]" : 18
+            "]" : 18,
+            "z" : "down",
+            "x" : "up"
         }
-        if(noteMap.get(key)):
+
+def on_press(key): 
+            
+    try:
+            if key.char in noteMap.keys(): 
+
+                if noteMap[key.char] == "down":
+                    octaveChange(-1)
+                    return False 
+                if noteMap[key.char] == "up":
+                    octaveChange(1)
+                else:
+                    sendNoteFromKeyBoard(key.char)
+
+    except AttributeError:
+            pass
+
+listener_thread = pynput.keyboard.Listener(on_press=on_press,suppress = True)
+listener_thread.start()
+
+
+
+
+#reads keyboard and update frequency
+def getFrequencyOffset(cent,freq):
+    
+    freqOffset = freq*(2**(cent/1200))
+
+   
+    return freqOffset
+def sendNoteFromKeyBoard(key):
+    global frequency
+    def getNoteNumFromKey(key):
+       
 
             return noteMap[key]+12*octave
-        return noteNum
-    noteNum = getNoteNumFromKey(key)
-    
-    noteFreq = 16.35*(2**(1/12))**noteNum
-    
-    frequencyOffset = getFrequencyOffset(centOffset,noteFreq)
-    frequency = noteFreq + frequencyOffset
+    if(getNoteNumFromKey != False):
+        
+        noteNum = getNoteNumFromKey(key)
+        
+        noteFreq = 16.35*(2**(1/12))**noteNum
+        
+        frequencyOffset = getFrequencyOffset(centOffset,noteFreq)
+        frequency = noteFreq + frequencyOffset
 
 # Call to change octave by x octaves
 def octaveChange(x):
@@ -404,6 +396,10 @@ while True:
 
         
 # Close the window and exit the program
+print("taco bell delphine")
 window.close()
+print("window closed")
+print("im the little guy")
+pynput.keyboard.Listener.stop(self = listener_thread)
 
 
