@@ -1,4 +1,4 @@
-from math import sin, pi
+from math import sin, pi, sqrt
 
 def getFrequencyOffset(cent,freq):
     
@@ -19,6 +19,17 @@ def sawtoothWAV(i, freq, amp):
 
 def triangleWAV(i, freq, amp):
     result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
+    return result
+
+def circleWAV(i , freq, amp):
+    wavelength = 1/float(freq)
+
+    position = (4.0 * i) % (2.0 * wavelength) - float(wavelength)
+    semi_circle = sqrt(wavelength**2 - position**2)
+    semi_circle_wave = (amp / wavelength) * semi_circle
+    direction_wave = (-1)**(((2*i) // wavelength) % 2)
+    result = semi_circle_wave * direction_wave
+
     return result
 
 def get_oscillator_sound_function(oscillator, frequency):
