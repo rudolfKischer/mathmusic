@@ -1,9 +1,13 @@
 from math import sin, pi, sqrt
+from random import random
 
 def getFrequencyOffset(cent,freq):
     
     freqOffset = freq*(2**(cent/1200))
     return freqOffset
+
+def noiseWAV(i, freq, amp):
+    return amp * (2.0 * random() - 1.0)
 
 def sineWAV(i, freq, amp):
     return amp * sin(2.0 * pi * freq * i)

@@ -1,5 +1,5 @@
 
-from waves import sineWAV, squareWAV, sawtoothWAV, triangleWAV, avg_all_WAV, getFrequencyOffset, get_oscillator_sound_function, circleWAV
+from waves import sineWAV, squareWAV, sawtoothWAV, triangleWAV, avg_all_WAV, getFrequencyOffset, get_oscillator_sound_function, circleWAV, noiseWAV
 from visualizer import draw_visualizer, draw_all_visualizer_segs
 from audio import create_audio_callback
 import pyaudio
@@ -22,7 +22,7 @@ layout = [
      sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True, trough_color = "firebrick4",background_color='grey10'),
      sg.Column([[sg.Text("currentOsci : " , key = '-currentOsci-')]], key= '-osciBank-')],
     [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
-     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
     [sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-SUBGRAPHS-", background_color='black'),
         sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
@@ -77,7 +77,8 @@ waveStrToFnc = {
   "Sawtooth" : sawtoothWAV,
   "Square" : squareWAV,
   "Triangle" : triangleWAV,
-  "Circle" : circleWAV
+  "Circle" : circleWAV,
+  "Noise" : noiseWAV
 }
 
 fncToWaveStr = {value: key for key, value in waveStrToFnc.items()}
