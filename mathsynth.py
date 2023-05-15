@@ -5,6 +5,7 @@ from audio import create_audio_callback
 import pyaudio
 import PySimpleGUI as sg
 import pynput
+import colorsys
 #add color list
 
 # Define the layout of the GUI
@@ -14,19 +15,19 @@ VISUALIZER_WIDTH = 240
 
 layout = [
 
-    [sg.Text("Pitch"),sg.Text("Octave"),sg.Text("Amplitude"),sg.Text("Phase"),sg.Text("currentOsci : " , key = '-currentOsci-')],
+    [sg.Text("Pitch"),sg.Text("Octave"),sg.Text("Amplitude"),sg.Text("Phase")],
     [sg.Slider(range=(0, 1200), key='-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=100,trough_color= 'dark goldenrod',background_color="grey10"),
      sg.Slider(range=(-3, 3), key='-PITCHOCTAVE-', orientation='v', enable_events=True ,default_value=0,resolution=1, trough_color = "mediumorchid4",background_color='grey10'),
      sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='v', default_value=50, enable_events=True, trough_color = "cyan4",background_color='grey10'),
      sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True, trough_color = "firebrick4",background_color='grey10'),
-     sg.Column([], key= '-osciBank-')],
+     sg.Column([[sg.Text("currentOsci : " , key = '-currentOsci-')]], key= '-osciBank-')],
     [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
     [sg.Graph((VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
     sg.Column([[sg.Text("Wave #"),sg.Text("Sample#")],
                [sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='v', resolution=1, default_value=10),
-                                                                          sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='v', resolution=1, default_value=200)]])
+                                                                          sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='v', resolution=1, default_value=200)]],background_color= "grey10")
     
     ],   
 
@@ -36,7 +37,7 @@ layout = [
 
 ]
 #Variables for Sampling playing and graphic 
-oscillatorColorList = ["dark goldenrod", "mediumorchid4", "firebrick4","cyan4"]
+oscillatorColorList = []
 sample_width = 2 #bytes to represent sample
 buffer_size = 1024
 wave_pos = [0]
@@ -180,7 +181,33 @@ def get_visualizer_duration():
 
     # Calculate the window duration
     return wavelength * num_of_waves
+def getNewColor():
+        if len(oscillatorColorList) == 0:
+                return "#D291BC"
+        else:
+                
+                lastHexColor = oscillatorColorList[i-2]
+                    # Remove the '#' symbol from the hex color string
+                lastHexColor = lastHexColor.lstrip('#')
+                # Extract the red, green, and blue components from the hex color
+                r = int(lastHexColor[0:2], 16)
+                g = int(lastHexColor[2:4], 16)
+                b = int(lastHexColor[4:6], 16)
 
+                r /= 255.0
+                g /= 255.0
+                b /= 255.0
+                lastHSVColor = colorsys.rgb_to_hsv(r, g, b)
+                lastHue = lastHSVColor[0]
+                print(lastHue)
+                newHue = (lastHue + 0.05) % 1
+                newRGBColor = colorsys.hsv_to_rgb(newHue,lastHSVColor[1],lastHSVColor[2] )
+                newHexColor = '#%02x%02x%02x' % (
+                int(newRGBColor[0] * 255),
+                int(newRGBColor[1] * 255),
+                int(newRGBColor[2] * 255)
+                )
+                return newHexColor
 #event loop
 while True:
     
@@ -210,15 +237,14 @@ while True:
         osciWAV = osci.get(i)
 
         if osciWAV == None:
-            if i - 1 < 4 :
-                colorSet = oscillatorColorList[i-1]
-            else:
-                colorSet = "blue"
-            
-            window['-currentOsci-'].update(value = "currentOsci : " + str(i))
+           
+            colorSet = getNewColor()
+            oscillatorColorList.append(colorSet)
+            window['-currentOsci-'].update(value = "currentOsci : " + str(i), background_color = colorSet)
+           
             osci[i] = dict(defaultOscilattor)
-            new_row = [sg.Text(f'Osci{i}'),sg.Button('Mute',key=f'-muteOsci{i}-'),sg.Button('Modify',key=f'-modify{i}-',button_color= colorSet)]
-            window.extend_layout(window['-osciBank-'], [new_row])
+            new_row = [sg.Text(f'Osci{i}',background_color= colorSet),sg.Button('Mute',key=f'-muteOsci{i}-', button_color= colorSet),sg.Button('Modify',key=f'-modify{i}-',button_color= colorSet)]
+            window.extend_layout(window['-osciBank-'], [new_row],)
 
 
 
@@ -226,10 +252,10 @@ while True:
         if event == '-modify' + str(i) + "-": 
             
             modifyingOsci = i
-            if i - 1 < 4 :
-                colorSet = oscillatorColorList[i-1]
-            else:
-                colorSet = "blue"
+           
+            colorSet = oscillatorColorList[i-1]
+         
+            
             print(colorSet)
             window['-currentOsci-'].update(value = "currentOsci : " + str(i), background_color = colorSet)
             octaveNumber = (osci[modifyingOsci]["freqOffset"] - osci[modifyingOsci]["freqOffset"]%1200 )  /1200
