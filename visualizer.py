@@ -1,7 +1,7 @@
 from numpy import array, linalg
 from waves import get_oscillator_sound_function
 
-def draw_visualizer_line(graph, start, end):
+def draw_visualizer_line(graph, start, end, color):
         # Convert the start and end points to numpy arrays
     start = array(start)
     end = array(end)
@@ -18,7 +18,7 @@ def draw_visualizer_line(graph, start, end):
     # Extend the line by 10 pixels in its direction of travel
     extension = 5
     extended_end = end + extension * direction
-    graph.draw_line(tuple(start), tuple(extended_end), color="green", width=5)
+    graph.draw_line(tuple(start), tuple(extended_end), color=color, width=5)
 
 
 def get_sample_visualizer_point(window_pos, window_offset, window_duration, soundFunction):
@@ -39,7 +39,7 @@ def get_screen_point_seg(sample, normalized_pos, width, height, vis_num, vis_tot
     screen_y = ((sample_y + 1) * 0.5 * (1 / float(vis_total)) + relative_vert) * height
     return (screen_x, screen_y)
 
-def draw_visualizer_seg(graph, window_duration, window_offset, sample_rate, soundFunction, vis_num, vis_total):
+def draw_visualizer_seg(graph, window_duration, window_offset, sample_rate, soundFunction, vis_num, vis_total, color="green"):
     global visualizerPhase
     width = graph.CanvasSize[0]
     height = graph.CanvasSize[1]
@@ -55,7 +55,7 @@ def draw_visualizer_seg(graph, window_duration, window_offset, sample_rate, soun
         end = get_sample_visualizer_point(end_relative_pos, window_offset, window_duration, soundFunction)
         end = get_screen_point_seg(end, end_relative_pos, width, height, vis_num, vis_total)
 
-        draw_visualizer_line(graph, start, end)
+        draw_visualizer_line(graph, start, end, color)
 
 def draw_visualizer(graph, window_duration, window_offset, sample_rate, soundFunction):
     graph.erase()
@@ -67,4 +67,4 @@ def draw_all_visualizer_segs(graphs, window_duration, visualizerPhase, v_num_of_
         graphs.erase()
         for i in osci.keys():
             sound_func = get_oscillator_sound_function(osci[i], frequency)
-            draw_visualizer_seg(graphs, window_duration, visualizerPhase, v_num_of_samples, sound_func, i-1, (len_osci))
+            draw_visualizer_seg(graphs, window_duration, visualizerPhase, v_num_of_samples, sound_func, i-1, (len_osci), osci[i]["color"])
