@@ -10,41 +10,29 @@ import matplotlib.pyplot as plt
 import time
 import matplotlib.pyplot as plt
 import pynput
-import threading
+
 
 # Define the layout of the GUI
 
 layout = [
     
     [sg.Text('Select a waveform:'),
-     sg.Column([
-         [sg.Text('Osci1'),sg.Button('Mute',key='-muteOsci1-'),sg.Button('Modify',key='-modifyOsci1-')], 
-         [sg.Text('Osci2'),sg.Button('Mute',key='-muteOsci2-'),sg.Button('Modify',key='-modifyOsci2-')],
-         [sg.Text('Osci3'),sg.Button('Mute',key='-muteOsci3-'),sg.Button('Modify',key='-modifyOsci3-')],
-         [sg.Text('Osci4'),sg.Button('Mute',key='-muteOsci4-'),sg.Button('Modify',key='-modifyOsci4-')]                       
-                ])],
+     sg.Column([], key= '-osciBank-')],
 
+    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+    [sg.Text("currentOsci : " , key = '-currentOsci-')],
 
-
-    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Custom'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
-    [sg.Text('Select your Oscilator')],
-    [sg.Combo([1,2,3,4], default_value=1, key='-OsciNumber-',enable_events=True)],
-    [sg.Text("Enter a custom function here",visible=False,key="-CUSTOMTIP1-")],
-    [sg.Text("freq=freq, amp = amplitude , phase= phase",visible=False, key="-CUSTOMTIP2-")],
-    [sg.InputText("amp*math.sin(2*math.pi*freq*i/sample_rate)", key="-CUSTOM-",visible=False)],
     [sg.Text("Pitch")],
-    [sg.Slider(range=(-1200, 1200), key='-FREQUENCY-', orientation='h', enable_events=True,default_value=0,tick_interval=5)],
+    [sg.Slider(range=(-1200, 1200), key='-FREQUENCY-', orientation='h', enable_events=True ,default_value=0,resolution=100)],
     [sg.Text("Amplitude")],
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50, enable_events=True)],
     [sg.Text("Phase")],
-    [sg.Slider(range=(0, 4), key='-PHASE-', orientation='h')],
-    [sg.Button('Start'),sg.Button('Generate Graph'), sg.Text("ready",key='-LOG-')],
-    [sg.Button('<', pad=0, button_color="black"),sg.Button('>', pad=0,button_color="black"),sg.Button('C', pad=0,button_color="bisque"),sg.Button('D', pad=0,button_color="bisque"),sg.Button('E', pad=0,button_color="bisque"),
-    sg.Button('F', pad=0,button_color="bisque"),sg.Button('G', pad=0,button_color="bisque"),sg.Button('A', pad=0,button_color="bisque"),sg.Button('B', pad=0,button_color="bisque")],
+    [sg.Slider(range=(0, 10000), key='-PHASE-', orientation='h', enable_events= True)],
+    [sg.Button('Start')],
     [sg.Text("Octave = 4", key='-OCTAVE-')],
-    [sg.Graph((640, 480), (0, 0), (640, 480), key="-GRAPH-", background_color='black')],
+    [sg.Button('addOscilator',key= "-addOscillator-")],
+    [sg.Graph((640, 480), (0, 0), (640, 480), key="-GRAPH-", background_color='black')]    
 ]
-
 #Variables for Sampling playing and graphic 
 
 prevTime = time.time()
@@ -54,60 +42,76 @@ wave_pos = 0
 duration = 1    # seconds
 sample_rate = 44100
 windowWaveNumber = 1
-
+modifyingOsci = None
+oscillatorNumber = 1
+maxVolume = 32767
 playingAudio = False
-
 visualizerSamples = []
 visualizerSampleLength = 1 #seconds
 visualizerPhase = 0
-
-#variabled related to Frequency
 frequency = 440  # Hz
-centOffset = 0
-amplitude = 1.0
-maxVolume = 32767
-phase = 0.0
-masterSoundFunction = None
-customFunctionString = "amp*math.sin(2*math.pi*freq*i/sample_rate)"
 octave = 4
-noteButtons = ['C','D', 'E', 'F', 'G', 'H', 'A', 'B']
 
 #sound functions
-def sineWAV(i, freq, amp, phase):
+def sineWAV(i, freq, amp):
     return amp * math.sin(2.0 * math.pi * freq * i)
 
-def squareWAV(i, freq, amp, phase):
-    result = sineWAV(i, freq, amp, phase)
+def squareWAV(i, freq, amp):
+    result = sineWAV(i, freq, amp)
     if result > 0:
         return amp
     return -amp
-def sawtoothWAV(i, freq, amp , phase):
-    #wouldint x = y mod frequencywork just as well?
+def sawtoothWAV(i, freq, amp):
     return amp*((freq/2*i)%1)-0.5*amp
-def triangleWAV(i, freq, amp, phase):
+def triangleWAV(i, freq, amp):
     result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
     return result
-def customWAV(i, freq, amp, phase):
-    try:
-        return eval(customFunctionString)
-    except:
-        window['-LOG-'].update(value="BAD FUNCTION, goodboy saw played")
-        return sawtoothWAV(i, freq, amp, phase)
-#soundFunction Dictionary
-soundFunctions = {
-    "Sine": sineWAV,
-    "Square": squareWAV,
-    "Sawtooth": sawtoothWAV,
-    "Triangle": triangleWAV,
-    "Custom": customWAV
-}
-#variabe for what waveform is set
-masterSoundFunction = soundFunctions["Sine"]
 
-def soundFunction(i, freq, amp, phase):
-    x = (i + phase) / sample_rate
-    return masterSoundFunction(x, freq, amp, phase)
-        
+defaultOscilattor = {
+"freqOffset" : 0,
+"phase" : 0,
+"amplitude" : 0.5,
+"waveform" : sineWAV
+}
+
+osci = {
+
+}
+
+waveStrToFnc = {
+  "Sine"  : sineWAV,
+  "Sawtooth" : sawtoothWAV,
+  "Square" : squareWAV,
+  "Triangle" : triangleWAV
+}
+
+fncToWaveStr = {value: key for key, value in waveStrToFnc.items()}
+
+
+
+#variabe for what waveform is set
+def getFrequencyOffset(cent,freq):
+    
+    freqOffset = freq*(2**(cent/1200))
+
+   
+    return freqOffset
+
+def soundFunction(i):
+    if len(osci.keys()) == 0:
+        return 0
+    totalSample = 0
+
+    for modifyingOsci in osci.keys():
+       oscillator = osci[modifyingOsci] 
+       samplePoint =  (i + oscillator["phase"])/sample_rate
+       sample = oscillator["waveform"](
+                samplePoint,
+                frequency + getFrequencyOffset(oscillator["freqOffset"], frequency),
+                oscillator["amplitude"])
+       totalSample = totalSample + sample
+    return totalSample/(len(osci.keys()))
+
 def soundCallBack(in_data, frame_count, time_info, status):
    
     global wave_pos
@@ -116,45 +120,22 @@ def soundCallBack(in_data, frame_count, time_info, status):
 
     buffer_end = wave_pos + frame_count
     out_data = b''
-    visualizerSamples = []
+    tempVisual = []
     for i in range(wave_pos, buffer_end):
-        sample = soundFunction(i, frequency, amplitude, phase)
+
+
+        sample = soundFunction(i)
+
+
+
         sample_data = struct.pack('h', int(sample * maxVolume))
         out_data += sample_data
-        visualizerSamples.append(sample)
-    
+        tempVisual.append(sample)
+        
+    visualizerSamples = tempVisual
     wave_pos = buffer_end
     return (out_data, pyaudio.paContinue)
-#checks if a note was pressed and udpates frequency
-def pianoHandler():
-    def getNoteNumFromButton(note):
-    
-        noteMap = { 
-            "C" : 0,
-            "D" : 2,
-            "E" : 4,
-            "F" : 5,
-            "G" : 7,
-            "A" : 9,
-            "B" : 11,
-        }
-        return noteMap[note]+12*octave
-    if event == '<' or event == '>':
-        global octave
-        if event == '>' and octave < 10:
-            octave = octave + 1    
-        elif event == '<' and octave > 0:
-            octave = octave - 1
-        
 
-
-
-    if event in noteButtons:
-        
-        noteNum = getNoteNumFromButton(event)
-        
-        noteFreq = 16.35*(2**(1/12))**noteNum
-        window['-FREQUENCY-'].update(value=noteFreq)
         
 def plotWaveform(data, audio_data):
 
@@ -249,8 +230,8 @@ def on_press(key):
 
                 if noteMap[key.char] == "down":
                     octaveChange(-1)
-                    return False 
-                if noteMap[key.char] == "up":
+                   
+                elif noteMap[key.char] == "up":
                     octaveChange(1)
                 else:
                     sendNoteFromKeyBoard(key.char)
@@ -262,15 +243,6 @@ listener_thread = pynput.keyboard.Listener(on_press=on_press,suppress = True)
 listener_thread.start()
 
 
-
-
-#reads keyboard and update frequency
-def getFrequencyOffset(cent,freq):
-    
-    freqOffset = freq*(2**(cent/1200))
-
-   
-    return freqOffset
 def sendNoteFromKeyBoard(key):
     global frequency
     def getNoteNumFromKey(key):
@@ -282,15 +254,12 @@ def sendNoteFromKeyBoard(key):
         noteNum = getNoteNumFromKey(key)
         
         noteFreq = 16.35*(2**(1/12))**noteNum
-        
-        frequencyOffset = getFrequencyOffset(centOffset,noteFreq)
-        frequency = noteFreq + frequencyOffset
+        frequency = noteFreq
 
 # Call to change octave by x octaves
 def octaveChange(x):
     global octave
     octave = octave + x
-#call to update the main frequency value by noteFreq
 
 
 # Create the window
@@ -303,12 +272,9 @@ while True:
     event, values = window.read(timeout=0)
     window['-OCTAVE-'].update(value="Octave = " + str(octave))
     
-    if event == '-FREQUENCY-':
-        
-        centOffset = values['-FREQUENCY-']
-       
         
 
+   
     
     
     # If user closes window or clicks 'Exit', exit the program
@@ -316,26 +282,47 @@ while True:
         break
     
 
+    if event == '-addOscillator-':
+        oscillatorNumber += 1
 
-
-    amplitude = values['-AMPLITUDE-']/100
-    phase = values['-PHASE-']
-    custom = values['-CUSTOM-']
-    waveform = values['-WAVEFORM-']
    
-    #handles visibility of elements for use when custom is selected as waveform type
-    if event == '-WAVEFORM-':
-        if(waveform == "Custom"): 
-            customFunctionString = custom
-            window['-CUSTOM-'].update(visible=True)
-            window['-CUSTOMTIP1-'].update(visible=True)
-            window['-CUSTOMTIP2-'].update(visible=True) 
-        else:
-            window['-CUSTOM-'].update(visible=False)
-            window['-CUSTOMTIP1-'].update(visible=False)
-            window['-CUSTOMTIP2-'].update(visible=False)
-        window['-LOG-'].update(value=waveform + " played at " + str(frequency) + "hz!")
-        masterSoundFunction = soundFunctions[waveform]
+    for i in range(1,oscillatorNumber):
+        osciWAV = osci.get(i)
+        
+        if osciWAV ==None:
+            modifyingOsci = i
+            window['-currentOsci-'].update(value = "currentOsci : " + str(i))
+            osci[i] = dict(defaultOscilattor)
+            new_row = [sg.Text(f'Osci{i}'),sg.Button('Mute',key=f'-muteOsci{i}-'),sg.Button('Modify',key=f'-modify{i}-')]
+            window.extend_layout(window['-osciBank-'], [new_row])
+
+
+    
+    for i in osci.keys():
+        if event == '-modify' + str(i) + "-": 
+            modifyingOsci = i
+            window['-currentOsci-'].update(value = "currentOsci : " + str(i))
+
+            #change values of sliders to mirror current oscilator
+            window['-FREQUENCY-'].update(value= osci[modifyingOsci]["freqOffset"])
+            window['-AMPLITUDE-'].update(value= osci[modifyingOsci]["amplitude"]*100)
+            window['-PHASE-'].update(value= osci[modifyingOsci]["phase"])
+        
+        if event == '-FREQUENCY-':
+             osci[modifyingOsci]["freqOffset"] = values['-FREQUENCY-']
+        if event == '-AMPLITUDE-':   
+            osci[modifyingOsci]["amplitude"] = values['-AMPLITUDE-']/100
+        if event == '-PHASE-':
+            osci[modifyingOsci]["phase"] = values['-PHASE-']
+        if event == '-WAVEFORM-':
+            osci[modifyingOsci]["waveform"] =  waveStrToFnc[values['-WAVEFORM-']]
+    
+        
+
+
+  
+   
+
     
     #handles the graphing of the waveform
 
@@ -356,7 +343,6 @@ while True:
         
         playingAudio = not playingAudio
         if(playingAudio):
-            # Play the WAV file
             audio_player = pyaudio.PyAudio()
             stream = audio_player.open(format=audio_player.get_format_from_width(sample_width),
                                 channels=1,
@@ -372,26 +358,10 @@ while True:
             audio_player.terminate()
             
 
-    #handles generation of graph when button is pressed, checks if data is present to genreate    
-    if event == 'Generate Graph':        
-        data = generate_waveform(duration, sample_rate)
-        # Save the waveform to a WAV file
-        wave_file = wave.open('waveform.wav', 'w')
-        wave_file.setparams((1, 2, sample_rate, len(data), 'NONE', 'not compressed'))
-        for sample in data:
-            wave_file.writeframes(struct.pack('h', sample))
-        wave_file.close()
+    
+    
+    
 
-        audio_file = wave.open('waveform.wav', 'rb')
-        audio_data = audio_file.readframes(audio_file.getnframes())
-        audio_file.close()
-        try:
-             plotWaveform(data, audio_data)
-        except:
-            window['-LOG-'].update(value="No Data to Graph")
-    
-    
-    pianoHandler()
         
         
     
