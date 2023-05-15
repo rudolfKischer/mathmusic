@@ -15,17 +15,19 @@ VISUALIZER_WIDTH = 240
 
 layout = [
 
-    [sg.Text("Pitch"),sg.Text("Octave"),sg.Text("Amplitude"),sg.Text("Phase")],
-    [sg.Slider(range=(0, 1200), key='-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=100,trough_color= 'dark goldenrod',background_color="grey10"),
-     sg.Slider(range=(-3, 3), key='-PITCHOCTAVE-', orientation='v', enable_events=True ,default_value=0,resolution=1, trough_color = "mediumorchid4",background_color='grey10'),
-     sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='v', default_value=50, enable_events=True, trough_color = "cyan4",background_color='grey10'),
-     sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True, trough_color = "firebrick4",background_color='grey10'),
-     sg.Column([[sg.Text("currentOsci : " , key = '-currentOsci-')]], key= '-osciBank-')],
+    [sg.Text("     Fine    Course   Oct        Amp      Phase",background_color="grey10")],
+    [
+     sg.Slider(range=(0, 100), key='-FINEFREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=1,trough_color= '#6a938b',background_color="grey10",expand_y=True), 
+     sg.Slider(range=(0, 12), key='-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=1,trough_color= '#8cb596',background_color="grey10",expand_y=True),
+     sg.Slider(range=(-3, 3), key='-PITCHOCTAVE-', orientation='v', enable_events=True ,default_value=0,resolution=1, trough_color = "#f0c1aa",background_color='grey10',expand_y=True),
+     sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='v', default_value=50, enable_events=True, trough_color = "#faf6d7",background_color='grey10',expand_y=True),
+     sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True, trough_color = "#c8a67c",background_color='grey10',expand_y=True),
+     sg.Column([[sg.Text("currentOsci : " , key = '-currentOsci-')]], key= '-osciBank-', element_justification = "center"),
+     sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-SUBGRAPHS-", background_color='black')],
     [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
-    [sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-SUBGRAPHS-", background_color='black'),
-        sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
+    [sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
     sg.Column([[sg.Text("Wave #"),sg.Text("Sample#")],
                [sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='v', resolution=1, default_value=10),
 
@@ -202,7 +204,7 @@ def getNewColor():
                 b /= 255.0
                 lastHSVColor = colorsys.rgb_to_hsv(r, g, b)
                 lastHue = lastHSVColor[0]
-                newHue = (lastHue + 0.1) % 1.0
+                newHue = (lastHue + 0.05) % 1.0
                 newRGBColor = colorsys.hsv_to_rgb(newHue,lastHSVColor[1],lastHSVColor[2] )
                 newHexColor = '#%02x%02x%02x' % (
                 int(newRGBColor[0] * 255),
@@ -262,15 +264,17 @@ while True:
             
             window['-currentOsci-'].update(value = "currentOsci : " + str(i), background_color = colorSet)
             octaveNumber = (osci[modifyingOsci]["freqOffset"] - osci[modifyingOsci]["freqOffset"]%1200 )  /1200
-            octaveDelta = octaveNumber*1200
+            octaveDelta = octaveNumber*12
+            fineFreqNumber = osci[modifyingOsci]["freqOffset"]%100
             #change values of sliders to mirror current oscilator
-            window['-FREQUENCY-'].update(value= osci[modifyingOsci]["freqOffset"] - octaveDelta)
+            window['-FINEFREQUENCY-'].update(value= fineFreqNumber)
+            window['-FREQUENCY-'].update(value= (osci[modifyingOsci]["freqOffset"] - (osci[modifyingOsci]["freqOffset"]%100))/100 - octaveDelta)
             window['-PITCHOCTAVE-'].update(value= octaveNumber)
             window['-AMPLITUDE-'].update(value= osci[modifyingOsci]["amplitude"]*100)
             window['-PHASE-'].update(value= osci[modifyingOsci]["phase"])
-
-        if event == '-FREQUENCY-' or event == '-PITCHOCTAVE-':
-             osci[modifyingOsci]["freqOffset"] = values['-FREQUENCY-']+1200*values['-PITCHOCTAVE-']
+        
+        if event == '-FREQUENCY-' or event == '-PITCHOCTAVE-' or event == '-FINEFREQUENCY-':
+             osci[modifyingOsci]["freqOffset"] = 100*values['-FREQUENCY-']  + 1200*values['-PITCHOCTAVE-'] + values['-FINEFREQUENCY-']
         if event == '-AMPLITUDE-':   
             osci[modifyingOsci]["amplitude"] = values['-AMPLITUDE-']/100
         if event == '-PHASE-':
