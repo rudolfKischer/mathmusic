@@ -5,7 +5,7 @@ from audio import create_audio_callback
 import pyaudio
 import PySimpleGUI as sg
 import pynput
-
+#add color list
 
 # Define the layout of the GUI
 
@@ -15,10 +15,10 @@ VISUALIZER_WIDTH = 240
 layout = [
 
     [sg.Text("Pitch"),sg.Text("Octave"),sg.Text("Amplitude"),sg.Text("Phase"),sg.Text("currentOsci : " , key = '-currentOsci-')],
-    [sg.Slider(range=(0, 1200), key='-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=100),
-     sg.Slider(range=(-3, 3), key='-PITCHOCTAVE-', orientation='v', enable_events=True ,default_value=0,resolution=1),
-     sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='v', default_value=50, enable_events=True),
-     sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True),
+    [sg.Slider(range=(0, 1200), key='-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=100,trough_color= 'dark goldenrod',background_color="grey10"),
+     sg.Slider(range=(-3, 3), key='-PITCHOCTAVE-', orientation='v', enable_events=True ,default_value=0,resolution=1, trough_color = "mediumorchid4",background_color='grey10'),
+     sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='v', default_value=50, enable_events=True, trough_color = "cyan4",background_color='grey10'),
+     sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True, trough_color = "firebrick4",background_color='grey10'),
      sg.Column([], key= '-osciBank-')],
     [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
@@ -36,7 +36,7 @@ layout = [
 
 ]
 #Variables for Sampling playing and graphic 
-
+oscillatorColorList = ["dark goldenrod", "mediumorchid4", "firebrick4","cyan4"]
 sample_width = 2 #bytes to represent sample
 buffer_size = 1024
 wave_pos = [0]
@@ -167,7 +167,7 @@ def octaveChange(x):
 
 
 # Create the window
-window = sg.Window('Waveform Selector', layout,background_color="thistle")
+window = sg.Window('Waveform Selector', layout,background_color="grey10")
 graph = window['-GRAPH-']
 
 def get_visualizer_duration():
@@ -210,18 +210,28 @@ while True:
         osciWAV = osci.get(i)
 
         if osciWAV == None:
-            modifyingOsci = i
+            if i - 1 < 4 :
+                colorSet = oscillatorColorList[i-1]
+            else:
+                colorSet = "blue"
+            
             window['-currentOsci-'].update(value = "currentOsci : " + str(i))
             osci[i] = dict(defaultOscilattor)
-            new_row = [sg.Text(f'Osci{i}'),sg.Button('Mute',key=f'-muteOsci{i}-'),sg.Button('Modify',key=f'-modify{i}-')]
+            new_row = [sg.Text(f'Osci{i}'),sg.Button('Mute',key=f'-muteOsci{i}-'),sg.Button('Modify',key=f'-modify{i}-',button_color= colorSet)]
             window.extend_layout(window['-osciBank-'], [new_row])
 
 
 
     for i in osci.keys():
         if event == '-modify' + str(i) + "-": 
+            
             modifyingOsci = i
-            window['-currentOsci-'].update(value = "currentOsci : " + str(i))
+            if i - 1 < 4 :
+                colorSet = oscillatorColorList[i-1]
+            else:
+                colorSet = "blue"
+            print(colorSet)
+            window['-currentOsci-'].update(value = "currentOsci : " + str(i), background_color = colorSet)
             octaveNumber = (osci[modifyingOsci]["freqOffset"] - osci[modifyingOsci]["freqOffset"]%1200 )  /1200
             octaveDelta = octaveNumber*1200
             #change values of sliders to mirror current oscilator
