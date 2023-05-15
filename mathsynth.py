@@ -10,32 +10,29 @@ import pynput
 # Define the layout of the GUI
 
 VISUALIZER_HEIGHT = 240
-VISUALIZER_WIDTH = 320
+VISUALIZER_WIDTH = 240
 
 layout = [
-    
-    [sg.Text('Select a waveform:'),
+
+    [sg.Text("Pitch"),sg.Text("Octave"),sg.Text("Amplitude"),sg.Text("Phase"),sg.Text("currentOsci : " , key = '-currentOsci-')],
+    [sg.Slider(range=(0, 1200), key='-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=100),
+     sg.Slider(range=(-3, 3), key='-PITCHOCTAVE-', orientation='v', enable_events=True ,default_value=0,resolution=1),
+     sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='v', default_value=50, enable_events=True),
+     sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True),
      sg.Column([], key= '-osciBank-')],
-
-    [sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
-    [sg.Text("currentOsci : " , key = '-currentOsci-')],
-
-    [sg.Text("Pitch")],
-    [sg.Slider(range=(-1200, 1200), key='-FREQUENCY-', orientation='h', enable_events=True ,default_value=0,resolution=100)],
-    [sg.Text("Amplitude")],
-    [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50, enable_events=True)],
-    [sg.Text("Phase")],
-    [sg.Slider(range=(0, 100), key='-PHASE-', orientation='h', enable_events= True)],
-    [sg.Button('Start')],
-    [sg.Text("Octave = 4", key='-OCTAVE-')],
-    [sg.Button('addOscilator',key= "-addOscillator-")],
-    [sg.Graph((VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black')],   
+    [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
+     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+    [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
+    [sg.Graph((VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
+    sg.Column([[sg.Text("Wave #"),sg.Text("Sample#")],
+               [sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='v', resolution=1, default_value=10),
+                                                                          sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='v', resolution=1, default_value=200)]])
+    
+    ],   
 
     [sg.Text("Visualizer Settings")],
-    [sg.Text("Sample Scale"),sg.Slider(range=(0.1, 1.0), key='-VSCALE-', orientation='h', resolution=.01, default_value=1.0),
-     sg.Text("Number of waves"),sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='h', resolution=1, default_value=10)],
-    [sg.Text("wave speed"),sg.Slider(range=(0, 0.1), key='-VWAVESPEED-', orientation='h', resolution=0.001, default_value=0.01),
-     sg.Text("Number of Samples"),sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='h', resolution=1, default_value=200)]
+    [sg.Text("Sample Scale"),sg.Slider(range=(0.1, 1.0), key='-VSCALE-', orientation='h', resolution=.01, default_value=1.0)],
+    [sg.Text("wave speed"),sg.Slider(range=(0, 0.1), key='-VWAVESPEED-', orientation='h', resolution=0.001, default_value=0.01)]
 
 ]
 #Variables for Sampling playing and graphic 
@@ -225,14 +222,16 @@ while True:
         if event == '-modify' + str(i) + "-": 
             modifyingOsci = i
             window['-currentOsci-'].update(value = "currentOsci : " + str(i))
-
+            octaveNumber = (osci[modifyingOsci]["freqOffset"] - osci[modifyingOsci]["freqOffset"]%1200 )  /1200
+            octaveDelta = octaveNumber*1200
             #change values of sliders to mirror current oscilator
-            window['-FREQUENCY-'].update(value= osci[modifyingOsci]["freqOffset"])
+            window['-FREQUENCY-'].update(value= osci[modifyingOsci]["freqOffset"] - octaveDelta)
+            window['-PITCHOCTAVE-'].update(value= octaveNumber)
             window['-AMPLITUDE-'].update(value= osci[modifyingOsci]["amplitude"]*100)
             window['-PHASE-'].update(value= osci[modifyingOsci]["phase"])
 
-        if event == '-FREQUENCY-':
-             osci[modifyingOsci]["freqOffset"] = values['-FREQUENCY-']
+        if event == '-FREQUENCY-' or event == '-PITCHOCTAVE-':
+             osci[modifyingOsci]["freqOffset"] = values['-FREQUENCY-']+1200*values['-PITCHOCTAVE-']
         if event == '-AMPLITUDE-':   
             osci[modifyingOsci]["amplitude"] = values['-AMPLITUDE-']/100
         if event == '-PHASE-':
