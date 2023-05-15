@@ -1,0 +1,1 @@
+# GUI COMPONENTS and variables / templates should be moved here if possible
