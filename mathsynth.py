@@ -14,6 +14,9 @@ import pynput
 
 # Define the layout of the GUI
 
+VISUALIZER_HEIGHT = 480
+VISUALIZER_WIDTH = 640
+
 layout = [
     
     [sg.Text('Select a waveform:'),
@@ -31,7 +34,14 @@ layout = [
     [sg.Button('Start')],
     [sg.Text("Octave = 4", key='-OCTAVE-')],
     [sg.Button('addOscilator',key= "-addOscillator-")],
-    [sg.Graph((640, 480), (0, 0), (640, 480), key="-GRAPH-", background_color='black')]    
+    [sg.Graph((VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black')],   
+
+    [sg.Text("Visualizer Settings")],
+    [sg.Text("Sample Scale"),sg.Slider(range=(0.1, 1.0), key='-VSCALE-', orientation='h', resolution=.01, default_value=.4)],
+    [sg.Text("Number of waves"),sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='h', resolution=1, default_value=10)],
+    [sg.Text("wave speed"),sg.Slider(range=(0, 0.5), key='-VWAVESPEED-', orientation='h', resolution=0.001, default_value=0.01)],
+    [sg.Text("Number of Samples"),sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='h', resolution=1, default_value=200)]
+
 ]
 #Variables for Sampling playing and graphic 
 
@@ -46,11 +56,16 @@ modifyingOsci = None
 oscillatorNumber = 1
 maxVolume = 32767
 playingAudio = False
-visualizerSamples = []
-visualizerSampleLength = 1 #seconds
-visualizerPhase = 0
 frequency = 440  # Hz
 octave = 4
+
+visualizerSamples = []
+visualizerSamplesScale = 0.4 #percentage of samples to use for visualizer 0-1
+visualizerFitWave = True
+num_of_waves = 3
+v_num_of_samples = 2000
+visualizerPhase = 0
+visualizer_speed = 1
 
 #sound functions
 def sineWAV(i, freq, amp):
@@ -104,10 +119,12 @@ def soundFunction(i):
 
     for modifyingOsci in osci.keys():
        oscillator = osci[modifyingOsci] 
+
        
        oscillatorFrequency = frequency + getFrequencyOffset(oscillator["freqOffset"], frequency)
        phaseOffset = (oscillator["phase"]/100)*frequency
        samplePoint =  (i + phaseOffset)/sample_rate
+
        sample = oscillator["waveform"](
                 samplePoint,
                 oscillatorFrequency,
@@ -127,7 +144,7 @@ def soundCallBack(in_data, frame_count, time_info, status):
     for i in range(wave_pos, buffer_end):
 
 
-        sample = soundFunction(i)
+        sample = soundFunction(( i / float(sample_rate)))
 
 
 
@@ -192,12 +209,57 @@ def draw_visualizer_line(graph, start, end):
     extension = 5
     extended_end = end + extension * direction
     graph.draw_line(tuple(start), tuple(extended_end),color="green", width=5)
-#generates data from waveform equation   
+
+def get_longest_wave():
+    longest = 0
+    longestWave = None
+    for key in osci.keys():
+        freq = osci[key]["freqOffset"]
+        if freq > longest:
+            longest = freq
+            longestWave = key
+
+    return longestWave
+    
+
+def get_sample_visualizer_point(sample, sample_length, num_of_waves, longest_wave):
+    wave_frequence = frequency
+    if longest_wave:
+      wave_frequence = frequency + getFrequencyOffset(osci[longest_wave]["freqOffset"], frequency)
+    wavelength = (1.0/float(wave_frequence))
+
+    relative_pos =  (sample + visualizerPhase) / float(sample_length) * visualizerSamplesScale
+
+    sample_x = num_of_waves * wavelength * relative_pos
+
+    sample_y = soundFunction(sample_x)
+
+    v_x = VISUALIZER_WIDTH * (sample / float(sample_length))
+
+    v_y = (sample_y + 1) * 0.5 * VISUALIZER_HEIGHT
+    return (v_x,v_y)
+
+
+def draw_visualizer(graph):
+    global visualizerPhase
+
+    visualizerPhase = visualizerPhase + v_num_of_samples * visualizer_speed
+
+    graph.erase()
+    longest_wave = get_longest_wave()
+
+    for sampleNum in range(0,int(v_num_of_samples)):
+        start = get_sample_visualizer_point(sampleNum, v_num_of_samples, num_of_waves, longest_wave)
+        end = get_sample_visualizer_point(sampleNum + 1, v_num_of_samples, num_of_waves, longest_wave)
+
+        draw_visualizer_line(graph, start, end)
+
+
 def generate_waveform(duration, sample_rate):
             num_samples = int(sample_rate * duration)
             data = []
             for i in range(num_samples):
-                sample = soundFunction(i, frequency, amplitude, phase) * maxVolume
+                sample = soundFunction(i/sample_rate, frequency, amplitude, phase) * maxVolume
                 data.append(int(sample))
             return data
     
@@ -284,6 +346,11 @@ while True:
     if event == sg.WINDOW_CLOSED or event == 'Exit' or None:
         break
     
+    visualizerSamplesScale = values['-VSCALE-']
+    num_of_waves = values['-VNUMWAVES-']
+    visualizer_speed = values['-VWAVESPEED-']
+    v_num_of_samples = values['-VNUMSAMPLES-']
+    
 
     if event == '-addOscillator-':
         oscillatorNumber += 1
@@ -330,15 +397,16 @@ while True:
     #handles the graphing of the waveform
 
     if playingAudio:
-        graph.erase()
-        num_samples = len(visualizerSamples)
-        for sample in range(1,num_samples-10):
-            x1 = sample/num_samples * 640
-            y1 = ((visualizerSamples[sample])) * 480 + 480/2
-            x2 = (sample+1)/num_samples * 640
-            y2 = ((visualizerSamples[sample+1])) * 480 + 480/2
-            # print(f"({x1},{y1}),({x2},{y2})")
-            draw_visualizer_line(graph, (x1,y1),(x2,y2))
+        draw_visualizer(graph)
+        # graph.erase()
+        # num_samples = len(visualizerSamples)
+        # for sample in range(1,num_samples-10):
+        #     x1 = sample/num_samples * 640
+        #     y1 = ((visualizerSamples[sample])) * 480 + 480/2
+        #     x2 = (sample+1)/num_samples * 640
+        #     y2 = ((visualizerSamples[sample+1])) * 480 + 480/2
+        #     # print(f"({x1},{y1}),({x2},{y2})")
+        #     draw_visualizer_line(graph, (x1,y1),(x2,y2))
             
 
     # If user clicks 'start' start the calculations and waveform
