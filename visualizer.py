@@ -16,9 +16,9 @@ def draw_visualizer_line(graph, start, end, color):
     direction /= norm
 
     # Extend the line by 10 pixels in its direction of travel
-    extension = 5
+    extension = 2
     extended_end = end + extension * direction
-    graph.draw_line(tuple(start), tuple(extended_end), color=color, width=5)
+    graph.draw_line(tuple(start), tuple(extended_end), color=color, width=3)
 
 
 def get_sample_visualizer_point(window_pos, window_offset, window_duration, soundFunction):

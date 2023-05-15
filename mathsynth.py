@@ -28,12 +28,14 @@ layout = [
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
     [sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
-    sg.Column([[sg.Text("Wave #"),sg.Text("Sample#")],
-               [sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='v', resolution=1, default_value=10),
-
-                                                                          sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='v', resolution=1, default_value=200)]],background_color= "grey10")
-    
-
+    sg.Column([
+        [sg.Text("Volume"),sg.Text("Wave #"),sg.Text("Sample#")],
+        [
+            sg.Slider(range=(0, 0.5), key='-VOLUME-', orientation='v', resolution=0.0025, default_value=0.15),
+            sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='v', resolution=1, default_value=10),
+            sg.Slider(range=(1, VISUALIZER_WIDTH), key='-VNUMSAMPLES-', orientation='v', resolution=1, default_value=200)
+        ]
+    ],background_color= "grey10")
     ],   
     [sg.Text("Visualizer Settings")],
     [sg.Text("wave speed"),sg.Slider(range=(0, 0.1), key='-VWAVESPEED-', orientation='h', resolution=0.001, default_value=0.01)]
@@ -60,6 +62,7 @@ v_num_of_samples = 2000
 visualizerPhase = 0.0
 visualizer_speed = 1.0
 
+masterAmplitude = 0.5
 #sound functions
 
 
@@ -89,17 +92,17 @@ fncToWaveStr = {value: key for key, value in waveStrToFnc.items()}
 def soundFunction(i):
     if len(osci.keys()) == 0:
         return 0
-    return avg_all_WAV(i,osci,frequency)
+    return masterAmplitude * avg_all_WAV(i,osci,frequency)
 
 
 
       
 def get_longest_wave():
-    longest = float('-inf')
+    longest = float('inf')
     longestWave = None
     for key in osci.keys():
         freq = osci[key]["freqOffset"]
-        if freq > longest:
+        if freq < longest:
             longest = freq
             longestWave = key
 
@@ -232,6 +235,8 @@ while True:
     num_of_waves = values['-VNUMWAVES-']
     visualizer_speed = values['-VWAVESPEED-']
     v_num_of_samples = values['-VNUMSAMPLES-']
+
+    masterAmplitude = values['-VOLUME-']
     
 
     if event == '-addOscillator-':

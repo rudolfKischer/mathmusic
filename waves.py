@@ -19,7 +19,7 @@ def squareWAV(i, freq, amp):
     return -amp
 
 def sawtoothWAV(i, freq, amp):
-    return amp*((freq/2*i)%1)-0.5*amp
+    return amp*(((freq*i)%1)-0.5)
 
 def triangleWAV(i, freq, amp):
     result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
