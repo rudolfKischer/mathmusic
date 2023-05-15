@@ -37,10 +37,10 @@ layout = [
     [sg.Graph((VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black')],   
 
     [sg.Text("Visualizer Settings")],
-    [sg.Text("Sample Scale"),sg.Slider(range=(0.1, 1.0), key='-VSCALE-', orientation='h', resolution=.01, default_value=.4)],
-    [sg.Text("Number of waves"),sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='h', resolution=1, default_value=10)],
-    [sg.Text("wave speed"),sg.Slider(range=(0, 0.5), key='-VWAVESPEED-', orientation='h', resolution=0.001, default_value=0.01)],
-    [sg.Text("Number of Samples"),sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='h', resolution=1, default_value=200)]
+    [sg.Text("Sample Scale"),sg.Slider(range=(0.1, 1.0), key='-VSCALE-', orientation='h', resolution=.01, default_value=.4),
+     sg.Text("Number of waves"),sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='h', resolution=1, default_value=10)],
+    [sg.Text("wave speed"),sg.Slider(range=(0, 0.5), key='-VWAVESPEED-', orientation='h', resolution=0.001, default_value=0.01),
+     sg.Text("Number of Samples"),sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='h', resolution=1, default_value=200)]
 
 ]
 #Variables for Sampling playing and graphic 
@@ -122,8 +122,8 @@ def soundFunction(i):
 
        
        oscillatorFrequency = frequency + getFrequencyOffset(oscillator["freqOffset"], frequency)
-       phaseOffset = (oscillator["phase"]/100)*frequency
-       samplePoint =  (i + phaseOffset)/sample_rate
+       phaseOffset = (oscillator["phase"]/100)/frequency
+       samplePoint =  (i + phaseOffset)
 
        sample = oscillator["waveform"](
                 samplePoint,
