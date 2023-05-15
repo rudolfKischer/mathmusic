@@ -21,21 +21,25 @@ def triangleWAV(i, freq, amp):
     result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
     return result
 
+def get_oscillator_sound_function(oscillator, frequency):
+    def soundFunction(i):
+        
+      oscillatorFrequency = frequency + getFrequencyOffset(oscillator["freqOffset"], frequency)
+      phaseOffset = (oscillator["phase"]/100)/frequency
+      samplePoint =  (i + phaseOffset)
+
+      return oscillator["waveform"](samplePoint, oscillatorFrequency, oscillator["amplitude"])
+    return soundFunction
+
+
 def avg_all_WAV(i, waves , frequency):
     totalSample = 0
 
     for modifyingOsci in waves.keys():
        oscillator = waves[modifyingOsci] 
 
-       
-       oscillatorFrequency = frequency + getFrequencyOffset(oscillator["freqOffset"], frequency)
-       phaseOffset = (oscillator["phase"]/100)/frequency
-       samplePoint =  (i + phaseOffset)
-
-       sample = oscillator["waveform"](
-                samplePoint,
-                oscillatorFrequency,
-                oscillator["amplitude"])
+       oscillatorSoundFunction = get_oscillator_sound_function(oscillator, frequency)
+       sample = oscillatorSoundFunction(i)
        
        totalSample = totalSample + sample
     return totalSample/(len(waves.keys()))
