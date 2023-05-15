@@ -27,7 +27,7 @@ layout = [
     [sg.Text("Amplitude")],
     [sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='h', default_value=50, enable_events=True)],
     [sg.Text("Phase")],
-    [sg.Slider(range=(0, 10000), key='-PHASE-', orientation='h', enable_events= True)],
+    [sg.Slider(range=(0, 100), key='-PHASE-', orientation='h', enable_events= True)],
     [sg.Button('Start')],
     [sg.Text("Octave = 4", key='-OCTAVE-')],
     [sg.Button('addOscilator',key= "-addOscillator-")],
@@ -104,10 +104,13 @@ def soundFunction(i):
 
     for modifyingOsci in osci.keys():
        oscillator = osci[modifyingOsci] 
-       samplePoint =  (i + oscillator["phase"])/sample_rate
+       
+       oscillatorFrequency = frequency + getFrequencyOffset(oscillator["freqOffset"], frequency)
+       phaseOffset = (oscillator["phase"]/100)*frequency
+       samplePoint =  (i + phaseOffset)/sample_rate
        sample = oscillator["waveform"](
                 samplePoint,
-                frequency + getFrequencyOffset(oscillator["freqOffset"], frequency),
+                oscillatorFrequency,
                 oscillator["amplitude"])
        totalSample = totalSample + sample
     return totalSample/(len(osci.keys()))
