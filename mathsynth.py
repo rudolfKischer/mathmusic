@@ -38,7 +38,6 @@ layout = [
 
 ]
 #Variables for Sampling playing and graphic 
-oscillatorColorList = []
 sample_width = 2 #bytes to represent sample
 buffer_size = 1024
 wave_pos = [0]
@@ -184,12 +183,13 @@ def get_visualizer_duration():
 
     # Calculate the window duration
     return wavelength * num_of_waves
+
 def getNewColor():
-        if len(oscillatorColorList) == 0:
-                return "#D291BC"
+        if len(osci.keys()) < 1:
+                return "#a34b86"
         else:
                 
-                lastHexColor = oscillatorColorList[i-2]
+                lastHexColor = osci[i-1]['color']
                     # Remove the '#' symbol from the hex color string
                 lastHexColor = lastHexColor.lstrip('#')
                 # Extract the red, green, and blue components from the hex color
@@ -202,8 +202,7 @@ def getNewColor():
                 b /= 255.0
                 lastHSVColor = colorsys.rgb_to_hsv(r, g, b)
                 lastHue = lastHSVColor[0]
-                print(lastHue)
-                newHue = (lastHue + 0.05) % 1
+                newHue = (lastHue + 0.1) % 1.0
                 newRGBColor = colorsys.hsv_to_rgb(newHue,lastHSVColor[1],lastHSVColor[2] )
                 newHexColor = '#%02x%02x%02x' % (
                 int(newRGBColor[0] * 255),
@@ -240,13 +239,15 @@ while True:
         osciWAV = osci.get(i)
 
         if osciWAV == None:
-           
+            modifyingOsci = i
             colorSet = getNewColor()
-            oscillatorColorList.append(colorSet)
-            window['-currentOsci-'].update(value = "currentOsci : " + str(i), background_color = colorSet)
-           
             osci[i] = dict(defaultOscilattor)
-            new_row = [sg.Text(f'Osci{i}',background_color= colorSet),sg.Button('Mute',key=f'-muteOsci{i}-', button_color= colorSet),sg.Button('Modify',key=f'-modify{i}-',button_color= colorSet)]
+            osci[i]['color'] = colorSet
+            window['-currentOsci-'].update(value = "currentOsci : " + str(i), background_color = osci[i]['color'])
+            new_row = [
+                 sg.Text(f'Osci{i}',background_color= osci[i]['color']),
+                 sg.Button('Mute',key=f'-muteOsci{i}-', button_color= osci[i]['color']),
+                 sg.Button('Modify',key=f'-modify{i}-', button_color= osci[i]['color'])]
             window.extend_layout(window['-osciBank-'], [new_row],)
 
 
@@ -256,10 +257,9 @@ while True:
             
             modifyingOsci = i
            
-            colorSet = oscillatorColorList[i-1]
+            colorSet = osci[i]['color']
          
             
-            print(colorSet)
             window['-currentOsci-'].update(value = "currentOsci : " + str(i), background_color = colorSet)
             octaveNumber = (osci[modifyingOsci]["freqOffset"] - osci[modifyingOsci]["freqOffset"]%1200 )  /1200
             octaveDelta = octaveNumber*1200
