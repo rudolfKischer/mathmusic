@@ -1,6 +1,6 @@
 
-from waves import sineWAV, squareWAV, sawtoothWAV, triangleWAV, avg_all_WAV, getFrequencyOffset
-from visualizer import draw_visualizer
+from waves import sineWAV, squareWAV, sawtoothWAV, triangleWAV, avg_all_WAV, getFrequencyOffset, get_oscillator_sound_function
+from visualizer import draw_visualizer, draw_all_visualizer_segs
 from audio import create_audio_callback
 import pyaudio
 import PySimpleGUI as sg
@@ -23,15 +23,13 @@ layout = [
     [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
-    [sg.Graph((VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
+    [sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-SUBGRAPHS-", background_color='black'),
+        sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
     sg.Column([[sg.Text("Wave #"),sg.Text("Sample#")],
                [sg.Slider(range=(1, 60), key='-VNUMWAVES-', orientation='v', resolution=1, default_value=10),
-                                                                          sg.Slider(range=(1, 4000), key='-VNUMSAMPLES-', orientation='v', resolution=1, default_value=200)]])
-    
+                                                                          sg.Slider(range=(1, 200), key='-VNUMSAMPLES-', orientation='v', resolution=1, default_value=200)]])
     ],   
-
     [sg.Text("Visualizer Settings")],
-    [sg.Text("Sample Scale"),sg.Slider(range=(0.1, 1.0), key='-VSCALE-', orientation='h', resolution=.01, default_value=1.0)],
     [sg.Text("wave speed"),sg.Slider(range=(0, 0.1), key='-VWAVESPEED-', orientation='h', resolution=0.001, default_value=0.01)]
 
 ]
@@ -169,6 +167,7 @@ def octaveChange(x):
 # Create the window
 window = sg.Window('Waveform Selector', layout,background_color="thistle")
 graph = window['-GRAPH-']
+graphs = window['-SUBGRAPHS-']
 
 def get_visualizer_duration():
     #get wavelength of longest wave
@@ -196,7 +195,7 @@ while True:
     if event == sg.WINDOW_CLOSED or event == 'Exit' or None:
         break
     
-    visualizerSamplesScale = values['-VSCALE-']
+    # visualizerSamplesScale = values['-VSCALE-']
     num_of_waves = values['-VNUMWAVES-']
     visualizer_speed = values['-VWAVESPEED-']
     v_num_of_samples = values['-VNUMSAMPLES-']
@@ -248,6 +247,8 @@ while True:
         visualizerPhase = visualizerPhase + window_duration * visualizer_speed
 
         draw_visualizer(graph, window_duration, visualizerPhase, v_num_of_samples, soundFunction)
+
+        draw_all_visualizer_segs(graphs, window_duration, visualizerPhase, v_num_of_samples, osci, frequency)
             
 
     # If user clicks 'start' start the calculations and waveform
