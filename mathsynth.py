@@ -211,7 +211,7 @@ def draw_visualizer_line(graph, start, end):
     graph.draw_line(tuple(start), tuple(extended_end),color="green", width=5)
 
 def get_longest_wave():
-    longest = 0
+    longest = float('-inf')
     longestWave = None
     for key in osci.keys():
         freq = osci[key]["freqOffset"]
