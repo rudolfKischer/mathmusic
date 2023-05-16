@@ -36,14 +36,55 @@ def circleWAV(i , freq, amp):
 
     return result
 
-def get_oscillator_sound_function(oscillator, frequency):
-    def soundFunction(i):
-        
-      oscillatorFrequency = frequency + getFrequencyOffset(oscillator["freqOffset"], frequency)
-      phaseOffset = (oscillator["phase"]/100)/frequency
-      samplePoint =  (i + phaseOffset)
 
-      return oscillator["waveform"](samplePoint, oscillatorFrequency, oscillator["amplitude"])
+def get_LFO_wav_function(modifier):
+    amplitude = modifier["amplitude"]
+    frequency = modifier["frequency"]
+    waveForm = modifier["waveform"]
+    def waveFunc(i):
+        return waveForm(i, frequency, amplitude)
+    return waveFunc
+
+def modify_frequency(i, frequency, wavFunc):
+    if i == 0:
+        return frequency
+    return frequency + (wavFunc(i) / float(i))
+
+def modify_amplitude(i, amplitude, wavFunc):
+    return 0.5 * amplitude * (wavFunc(i) + 1 )
+
+LFO_attribute_functions = {
+    "frequency": modify_frequency,
+    "amplitude": modify_amplitude
+}
+
+def get_oscillator_sound_function(oscillator, frequency):
+    
+    modifiers = oscillator["modifiers"]
+
+    phaseOffset = (oscillator["phase"]/100)/frequency
+
+    OSCfrequency = frequency + getFrequencyOffset(oscillator["freqOffset"], frequency)
+    amplitude = oscillator["amplitude"]
+
+    def soundFunction(i):
+
+      samplePoint =  (i + phaseOffset)
+      modified_frequency = OSCfrequency
+      modified_amplitude = amplitude
+      for modifier in modifiers:
+          modifierAttribute = modifier["targetAttribute"]
+          modifierWavFunction = get_LFO_wav_function(modifier)
+
+          if modifierAttribute == 'amplitude':
+              modified_amplitude = LFO_attribute_functions[modifierAttribute](i, modified_amplitude, modifierWavFunction)
+          
+          if modifierAttribute == 'frequency':
+              modified_frequency = LFO_attribute_functions[modifierAttribute](i, modified_frequency, modifierWavFunction)
+        
+      return oscillator["waveform"](samplePoint, modified_frequency, modified_amplitude)
+    
+
     return soundFunction
 
 

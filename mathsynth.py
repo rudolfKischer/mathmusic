@@ -23,9 +23,20 @@ layout = [
      sg.Slider(range=(1, 100), key='-AMPLITUDE-', orientation='v', default_value=50, enable_events=True, trough_color = "#faf6d7",background_color='grey10',expand_y=True),
      sg.Slider(range=(0, 100), key='-PHASE-', orientation='v', enable_events= True, trough_color = "#c8a67c",background_color='grey10',expand_y=True),
      sg.Column([[sg.Text("currentOsci : " , key = '-currentOsci-')]], key= '-osciBank-', element_justification = "center"),
-     sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-SUBGRAPHS-", background_color='black')],
+     sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-SUBGRAPHS-", background_color='black')
+     ],
     [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+    [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
+    [sg.Text("     Frequency        Amp      ",background_color="grey10")],
+    [
+     sg.Slider(range=(0, 32), key='-LFO-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=0.01,trough_color= '#8cb596',background_color="grey10",expand_y=True),
+     sg.Slider(range=(0, 100), key='-LFO-AMPLITUDE-', orientation='v', default_value=50, resolution=0.01, enable_events=True, trough_color = "#faf6d7",background_color='grey10',expand_y=True),
+     sg.Column([[sg.Text("current-LFO : " , key = '-current-LFO-')]], key= '-LFO-Bank-', element_justification = "center")],
+    [sg.Button('addLFO',key= "-addLFO-"),
+     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise'], default_value="Sine", key='-LFO-WAVEFORM-',enable_events=True),
+     sg.Combo(['amplitude','frequency'], default_value="amplitude", key='-LFO-TARGET-ATTRIBUTE-',enable_events=True)
+     ],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
     [sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
     sg.Column([
@@ -48,6 +59,7 @@ wave_pos = [0]
 sample_rate = 44100
 windowWaveNumber = 1
 modifyingOsci = None
+modifyingLFO = None
 oscillatorNumber = 1
 maxVolume = 32767
 playingAudio = False
@@ -65,12 +77,24 @@ visualizer_speed = 1.0
 masterAmplitude = 0.5
 #sound functions
 
+defaultLFO = {
+      "frequency" : 10,
+      "waveform" : triangleWAV,
+      "amplitude" : 1.0,
+      "target" : 0,
+      "targetAttribute": 'amplitude'
+    }
+
+LFO = {
+}
 
 defaultOscilattor = {
-"freqOffset" : 0,
-"phase" : 0,
-"amplitude" : 0.5,
-"waveform" : sineWAV
+  "freqOffset" : 0,
+  "phase" : 0,
+  "amplitude" : 1.0,
+  "waveform" : sineWAV,
+  "modifiers": [
+  ]
 }
 
 osci = {
@@ -237,6 +261,46 @@ while True:
     v_num_of_samples = values['-VNUMSAMPLES-']
 
     masterAmplitude = values['-VOLUME-']
+
+    if event == '-addLFO-':
+        i = len(LFO) + 1
+        modifyingLFO = i
+        LFO[i] = dict(defaultLFO)
+        window['-current-LFO-'].update(value = "currentLFO : " + str(i), background_color = 'grey10')
+        new_row = [
+                 sg.Text(f'LFO{i}',background_color= 'grey10'),
+                 sg.Button('Mute',key=f'-muteLFO{i}-', button_color= 'grey10'),
+                 sg.Button('Modify',key=f'-modifyLFO{i}-', button_color= 'grey10')]
+        window.extend_layout(window['-LFO-Bank-'], [new_row])
+
+
+
+    if modifyingLFO != None:
+        if event == '-LFO-FREQUENCY-':
+              LFO[modifyingLFO]["frequency"] = values['-LFO-FREQUENCY-']
+        
+        if event == '-LFO-AMPLITUDE-':
+            LFO[modifyingLFO]["amplitude"] = values['-LFO-AMPLITUDE-']/100
+        
+        if event == '-LFO-WAVEFORM-':
+            LFO[modifyingLFO]["waveform"] =  waveStrToFnc[values['-LFO-WAVEFORM-']]
+        
+        if event == '-LFO-TARGET-ATTRIBUTE-':
+            LFO[modifyingLFO]["targetAttribute"] = values['-LFO-TARGET-ATTRIBUTE-']
+
+    for i in LFO.keys():
+        if event == f'-modifyLFO{i}-':
+             
+            modifyingLFO = i
+            window['-current-LFO-'].update(value = "currentLFO : " + str(i), background_color = 'grey10') 
+            
+            freq = LFO[modifyingLFO]["frequency"]
+
+            window['-LFO-FREQUENCY-'].update(value= LFO[modifyingLFO]["frequency"])
+            window['-LFO-AMPLITUDE-'].update(value= LFO[modifyingLFO]["amplitude"]*100)
+            window['-LFO-WAVEFORM-'].update(value= fncToWaveStr[LFO[modifyingLFO]["waveform"]])
+            window['-LFO-TARGET-ATTRIBUTE-'].update(value= LFO[modifyingLFO]["targetAttribute"])
+
     
 
     if event == '-addOscillator-':
@@ -257,8 +321,12 @@ while True:
                  sg.Button('Mute',key=f'-muteOsci{i}-', button_color= osci[i]['color']),
                  sg.Button('Modify',key=f'-modify{i}-', button_color= osci[i]['color'])]
             window.extend_layout(window['-osciBank-'], [new_row],)
-
-
+  
+    for oscillator in osci.keys():
+         osci[oscillator]["modifiers"] = []
+         for lfo in LFO.keys():
+              osci[oscillator]["modifiers"].append(dict(LFO[lfo]))
+              
 
     for i in osci.keys():
         if event == '-modify' + str(i) + "-": 
@@ -278,6 +346,7 @@ while True:
             window['-PITCHOCTAVE-'].update(value= octaveNumber)
             window['-AMPLITUDE-'].update(value= osci[modifyingOsci]["amplitude"]*100)
             window['-PHASE-'].update(value= osci[modifyingOsci]["phase"])
+            window['-WAVEFORM-'].update(value= fncToWaveStr[osci[modifyingOsci]["waveform"]])
         
         if event == '-FREQUENCY-' or event == '-PITCHOCTAVE-' or event == '-FINEFREQUENCY-':
              osci[modifyingOsci]["freqOffset"] = 100*values['-FREQUENCY-']  + 1200*values['-PITCHOCTAVE-'] + values['-FINEFREQUENCY-']
