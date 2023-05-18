@@ -1,5 +1,17 @@
 
-from waves import sineWAV, squareWAV, sawtoothWAV, triangleWAV, avg_all_WAV, getFrequencyOffset, get_oscillator_sound_function, circleWAV, noiseWAV
+from waves import (
+     sineWAV, 
+     squareWAV, 
+     sawtoothWAV, 
+     triangleWAV, 
+     avg_all_WAV, 
+     getFrequencyOffset, 
+     get_oscillator_sound_function, 
+     circleWAV, 
+     noiseWAV,
+     staircaseWAVE,
+     sharktoothWAV
+     )
 from visualizer import draw_visualizer, draw_all_visualizer_segs
 from audio import create_audio_callback
 import pyaudio
@@ -26,15 +38,16 @@ layout = [
      sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-SUBGRAPHS-", background_color='black')
      ],
     [sg.Button('Start'),sg.Button('addOscilator',key= "-addOscillator-"),
-     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
+     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise', 'staircase', 'sharktooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
-    [sg.Text("     Frequency        Amp      ",background_color="grey10")],
+    [sg.Text("Fine     Frequency        Amp      ",background_color="grey10")],
     [
+     sg.Slider(range=(0, 100), key='-LFO-FREQUENCY-FINE-', orientation='v', enable_events=True ,default_value=0,resolution=0.01,trough_color= '#8cb596',background_color="grey10",expand_y=True),
      sg.Slider(range=(0, 32), key='-LFO-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=0.01,trough_color= '#8cb596',background_color="grey10",expand_y=True),
      sg.Slider(range=(0, 100), key='-LFO-AMPLITUDE-', orientation='v', default_value=50, resolution=0.01, enable_events=True, trough_color = "#faf6d7",background_color='grey10',expand_y=True),
      sg.Column([[sg.Text("current-LFO : " , key = '-current-LFO-')]], key= '-LFO-Bank-', element_justification = "center")],
     [sg.Button('addLFO',key= "-addLFO-"),
-     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise'], default_value="Sine", key='-LFO-WAVEFORM-',enable_events=True),
+     sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise', 'staircase', 'sharktooth'], default_value="Sine", key='-LFO-WAVEFORM-',enable_events=True),
      sg.Combo(['amplitude','frequency'], default_value="amplitude", key='-LFO-TARGET-ATTRIBUTE-',enable_events=True)
      ],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
@@ -106,7 +119,9 @@ waveStrToFnc = {
   "Square" : squareWAV,
   "Triangle" : triangleWAV,
   "Circle" : circleWAV,
-  "Noise" : noiseWAV
+  "Noise" : noiseWAV,
+  "staircase" : staircaseWAVE,
+  "sharktooth" : sharktoothWAV
 }
 
 
@@ -261,6 +276,9 @@ while True:
         if event == '-LFO-FREQUENCY-':
               LFO[modifyingLFO]["frequency"] = values['-LFO-FREQUENCY-']
         
+        if event == '-LFO-FREQUENCY-FINE-':
+            LFO[modifyingLFO]["frequency"] = values['-LFO-FREQUENCY-'] + values['-LFO-FREQUENCY-FINE-']/100
+        
         if event == '-LFO-AMPLITUDE-':
             LFO[modifyingLFO]["amplitude"] = values['-LFO-AMPLITUDE-']/100
         
@@ -279,6 +297,7 @@ while True:
             freq = LFO[modifyingLFO]["frequency"]
 
             window['-LFO-FREQUENCY-'].update(value= LFO[modifyingLFO]["frequency"])
+            window['-LFO-FREQUENCY-FINE-'].update(value= (LFO[modifyingLFO]["frequency"] - (LFO[modifyingLFO]["frequency"]%1))*100)
             window['-LFO-AMPLITUDE-'].update(value= LFO[modifyingLFO]["amplitude"]*100)
             window['-LFO-WAVEFORM-'].update(value= fncToWaveStr[LFO[modifyingLFO]["waveform"]])
             window['-LFO-TARGET-ATTRIBUTE-'].update(value= LFO[modifyingLFO]["targetAttribute"])
@@ -347,7 +366,7 @@ while True:
         # Update the visualizer phase for wave speeed
         visualizerPhase = visualizerPhase + window_duration * visualizer_speed
 
-        draw_visualizer(graph, window_duration, visualizerPhase, v_num_of_samples, soundFunction)
+        draw_visualizer(graph, window_duration, visualizerPhase, v_num_of_samples, soundFunction, masterAmplitude)
 
         draw_all_visualizer_segs(graphs, window_duration, visualizerPhase, v_num_of_samples, osci, frequency)
             
