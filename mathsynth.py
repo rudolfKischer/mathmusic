@@ -73,7 +73,6 @@ num_of_waves = 3
 v_num_of_samples = 2000
 visualizerPhase = 0.0
 visualizer_speed = 1.0
-
 masterAmplitude = 0.5
 #sound functions
 
@@ -85,9 +84,6 @@ defaultLFO = {
       "targetAttribute": 'amplitude'
     }
 
-LFO = {
-}
-
 defaultOscilattor = {
   "freqOffset" : 0,
   "phase" : 0,
@@ -95,6 +91,9 @@ defaultOscilattor = {
   "waveform" : sineWAV,
   "modifiers": [
   ]
+}
+
+LFO = {
 }
 
 osci = {
@@ -110,16 +109,14 @@ waveStrToFnc = {
   "Noise" : noiseWAV
 }
 
-fncToWaveStr = {value: key for key, value in waveStrToFnc.items()}
 
+
+fncToWaveStr = {value: key for key, value in waveStrToFnc.items()}
 
 def soundFunction(i):
     if len(osci.keys()) == 0:
         return 0
     return masterAmplitude * avg_all_WAV(i,osci,frequency)
-
-
-
       
 def get_longest_wave():
     longest = float('inf')
@@ -132,10 +129,8 @@ def get_longest_wave():
 
     return longestWave
     
-
-    
-
-noteMap = { 
+def on_press(key): 
+    noteMap = { 
             "a" : 0,
             "w" : 1,
             "s" : 2,
@@ -158,50 +153,28 @@ noteMap = {
             "z" : "down",
             "x" : "up"
         }
-
-def on_press(key): 
+    global octave
+    def getNoteNumFromKey(key):
+                return noteMap[key]+12*octave
+    def sendNoteFromKeyBoard(key):
+        if(getNoteNumFromKey != False):
+            global frequency
+            noteNum = getNoteNumFromKey(key)
             
+            noteFreq = 16.35*(2**(1/12))**noteNum
+            frequency = noteFreq
     try:
             if key.char in noteMap.keys(): 
 
                 if noteMap[key.char] == "down":
-                    octaveChange(-1)
+                    octave = octave - 1
                    
                 elif noteMap[key.char] == "up":
-                    octaveChange(1)
+                     octave = octave + 1
                 else:
                     sendNoteFromKeyBoard(key.char)
-
     except AttributeError:
             pass
-
-listener_thread = pynput.keyboard.Listener(on_press=on_press,suppress = True)
-listener_thread.start()
-
-
-def sendNoteFromKeyBoard(key):
-    global frequency
-    def getNoteNumFromKey(key):
-       
-
-            return noteMap[key]+12*octave
-    if(getNoteNumFromKey != False):
-        
-        noteNum = getNoteNumFromKey(key)
-        
-        noteFreq = 16.35*(2**(1/12))**noteNum
-        frequency = noteFreq
-
-# Call to change octave by x octaves
-def octaveChange(x):
-    global octave
-    octave = octave + x
-
-
-# Create the window
-window = sg.Window('Waveform Selector', layout,background_color="grey10")
-graph = window['-GRAPH-']
-graphs = window['-SUBGRAPHS-']
 
 def get_visualizer_duration():
     #get wavelength of longest wave
@@ -240,6 +213,15 @@ def getNewColor():
                 int(newRGBColor[2] * 255)
                 )
                 return newHexColor
+
+
+listener_thread = pynput.keyboard.Listener(on_press=on_press,suppress = True)
+listener_thread.start()
+# Create the window
+window = sg.Window('Waveform Selector', layout,background_color="grey10")
+graph = window['-GRAPH-']
+graphs = window['-SUBGRAPHS-']
+
 #event loop
 while True:
     
