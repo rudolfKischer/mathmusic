@@ -1,4 +1,4 @@
-from math import sin, pi, sqrt
+from math import sin, pi, sqrt, floor
 from random import random
 
 def getFrequencyOffset(cent,freq):
@@ -19,11 +19,18 @@ def squareWAV(i, freq, amp):
     return -amp
 
 def sawtoothWAV(i, freq, amp):
-    return amp*(((freq*i)%1)-0.5)
+    return 2 * amp*(((freq*i)%1)-0.5)
+
+def sharktoothWAV(i, freq, amp):
+    return 2 * amp*(1-((freq*i)%1) - 0.5)
 
 def triangleWAV(i, freq, amp):
     result = 4*amp*(abs(((freq*i)%1)-1/2)-1/4)
     return result
+
+def staircaseWAVE(i, freq, amp):
+    steps = 3
+    return amp * floor((triangleWAV(i, freq, 1.0) * float(steps))) / float(steps)
 
 def circleWAV(i , freq, amp):
     wavelength = 1/float(freq)

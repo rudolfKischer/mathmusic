@@ -1,5 +1,6 @@
 from numpy import array, linalg
 from waves import get_oscillator_sound_function
+import sys
 
 def draw_visualizer_line(graph, start, end, color):
         # Convert the start and end points to numpy arrays
@@ -57,9 +58,13 @@ def draw_visualizer_seg(graph, window_duration, window_offset, sample_rate, soun
 
         draw_visualizer_line(graph, start, end, color)
 
-def draw_visualizer(graph, window_duration, window_offset, sample_rate, soundFunction):
+def draw_visualizer(graph, window_duration, window_offset, sample_rate, soundFunction, masterAmplitude):
     graph.erase()
-    draw_visualizer_seg(graph, window_duration, window_offset, sample_rate, soundFunction, 0, 1)
+    def new_sound_function(i):
+        if masterAmplitude == 0:
+            return soundFunction(i) 
+        return soundFunction(i) / masterAmplitude
+    draw_visualizer_seg(graph, window_duration, window_offset, sample_rate, new_sound_function, 0, 1)
 
 def draw_all_visualizer_segs(graphs, window_duration, visualizerPhase, v_num_of_samples, osci, frequency):
     len_osci = len(osci.keys())
