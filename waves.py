@@ -82,7 +82,7 @@ def get_oscillator_sound_function(oscillator, frequency):
       for modifier in modifiers:
           modifierAttribute = modifier["targetAttribute"]
           modifierWavFunction = get_LFO_wav_function(modifier)
-
+            #change to only apply when it is targeted to this one
           if modifierAttribute == 'amplitude':
               modified_amplitude = LFO_attribute_functions[modifierAttribute](i, modified_amplitude, modifierWavFunction)
           

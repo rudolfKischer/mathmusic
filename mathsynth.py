@@ -18,13 +18,14 @@ import pyaudio
 import PySimpleGUI as sg
 import pynput
 import colorsys
+import numpy as np
 #add color list
 
 # Define the layout of the GUI
 
 VISUALIZER_HEIGHT = 240
 VISUALIZER_WIDTH = 240
-
+LFOList = ['amplitude','frequency'] 
 layout = [
 
     [sg.Text("     Fine    Course   Oct        Amp      Phase",background_color="grey10")],
@@ -41,14 +42,19 @@ layout = [
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise', 'staircase', 'sharktooth'], default_value="Sine", key='-WAVEFORM-',enable_events=True)],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
     [sg.Text("Fine     Frequency        Amp      ",background_color="grey10")],
-    [
-     sg.Slider(range=(0, 100), key='-LFO-FREQUENCY-FINE-', orientation='v', enable_events=True ,default_value=0,resolution=0.01,trough_color= '#8cb596',background_color="grey10",expand_y=True),
+    [sg.Column([[sg.Slider(range=(0, 100), key='-LFO-FREQUENCY-FINE-', orientation='v', enable_events=True ,default_value=0,resolution=0.01,trough_color= '#8cb596',background_color="grey10",expand_y=True),
      sg.Slider(range=(0, 32), key='-LFO-FREQUENCY-', orientation='v', enable_events=True ,default_value=0,resolution=0.01,trough_color= '#8cb596',background_color="grey10",expand_y=True),
      sg.Slider(range=(0, 100), key='-LFO-AMPLITUDE-', orientation='v', default_value=50, resolution=0.01, enable_events=True, trough_color = "#faf6d7",background_color='grey10',expand_y=True),
-     sg.Column([[sg.Text("current-LFO : " , key = '-current-LFO-')]], key= '-LFO-Bank-', element_justification = "center")],
-    [sg.Button('addLFO',key= "-addLFO-"),
+     sg.Column([[sg.Text("current-LFO : " , key = '-current-LFO-')]], key= '-LFO-Bank-', element_justification = "center")],[sg.Button('addLFO',key= "-addLFO-"),
      sg.Combo(['Sine','Triangle', 'Square', 'Sawtooth', 'Circle', 'Noise', 'staircase', 'sharktooth'], default_value="Sine", key='-LFO-WAVEFORM-',enable_events=True),
-     sg.Combo(['amplitude','frequency'], default_value="amplitude", key='-LFO-TARGET-ATTRIBUTE-',enable_events=True)
+     sg.Combo(LFOList, default_value="amplitude", key='-LFO-TARGET-ATTRIBUTE-',enable_events=True)]]),
+     
+     sg.Column([[     sg.Slider(range=(0, 100), key='-Envelope-Attack-', orientation='v', enable_events=True ,default_value=0,resolution=1,trough_color= '#8cb596',background_color="grey10",expand_y=True),
+     sg.Slider(range=(0, 100), key='-Envelope-Decay-', orientation='v', enable_events=True ,default_value=0,resolution=1,trough_color= '#8cb596',background_color="grey10",expand_y=True),
+     sg.Slider(range=(0, 100), key='-Envelope-Sustain', orientation='v', default_value=0, resolution=1, enable_events=True, trough_color = "#faf6d7",background_color='grey10',expand_y=True),
+     sg.Slider(range=(0, 100), key='-Envelope-Release-', orientation='v', default_value=0, resolution=1, enable_events=True, trough_color = "#faf6d7",background_color='grey10',expand_y=True),
+     sg.Column([[sg.Text("Current-Envelope : " , key = '-Current-Envelope-')]], key= '-Envelope-Bank-', element_justification = "center")],[     sg.Button('Add Envelope',key= "-Add-Envelope-"),
+     sg.Combo(LFOList, default_value="amplitude", key='-ENVELOPE-TARGET-ATTRIBUTE-',enable_events=True)]])
      ],
     [sg.Text("Keyboard Octave = 4", key='-OCTAVE-')],
     [sg.Graph((1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), (0, 0), (1.5*VISUALIZER_WIDTH, VISUALIZER_HEIGHT), key="-GRAPH-", background_color='black'),
@@ -94,7 +100,9 @@ defaultLFO = {
       "waveform" : triangleWAV,
       "amplitude" : 1.0,
       "target" : 0,
-      "targetAttribute": 'amplitude'
+      "targetAttribute": 'amplitude',
+      "modifiers":[
+      ]
     }
 
 defaultOscilattor = {
@@ -106,7 +114,22 @@ defaultOscilattor = {
   ]
 }
 
+defualtEnvolope = {
+    "attack" : 0,
+    "decay"  : 0,
+    "sustain" : 1,
+    "release" : 1,
+    "target" : 0,
+    "targetAttribute": 'amplitude',
+    "modifiers": [
+         
+    ]
+    
+}
 LFO = {
+}
+Envelope = {
+     
 }
 
 osci = {
@@ -123,11 +146,36 @@ waveStrToFnc = {
   "staircase" : staircaseWAVE,
   "sharktooth" : sharktoothWAV
 }
+#lowPass Filter
 
 
 
 fncToWaveStr = {value: key for key, value in waveStrToFnc.items()}
+def resonant_lowpass_filter(signal, fs, cutoff_freq, resonance):
+    # Normalize the cutoff frequency
+    normalized_cutoff = 2 * cutoff_freq / fs
 
+    # Calculate the filter coefficients
+    omega_c = 2 * np.pi * normalized_cutoff
+    a1 = np.exp(-omega_c)
+    b0 = (1 - a1) * (resonance ** 2) / (1 + resonance ** 2)
+    b1 = 2 * b0
+    b2 = b0
+    a2 = -2 * a1 * resonance ** 2 / (1 + resonance ** 2)
+
+    # Apply the filter
+    filtered_signal = np.zeros_like(signal)
+    for n in range(2, len(signal)):
+        filtered_signal[n] = (
+            b0 * signal[n] +
+            b1 * signal[n - 1] +
+            b2 * signal[n - 2] -
+            a1 * filtered_signal[n - 1] -
+            a2 * filtered_signal[n - 2]
+        )
+
+    return filtered_signal
+    
 def soundFunction(i):
     if len(osci.keys()) == 0:
         return 0
@@ -270,6 +318,18 @@ while True:
                  sg.Button('Modify',key=f'-modifyLFO{i}-', button_color= 'grey10')]
         window.extend_layout(window['-LFO-Bank-'], [new_row])
 
+    
+    if event == '-Add-Envelope-':
+        i = len(Envelope) + 1
+        modifyingEnvelope = i
+        Envelope[i] = dict(defualtEnvolope)
+        window['-Current-Envelope-'].update(value = "currentEnvelope : " + str(i), background_color = 'grey10')
+        new_row = [
+                 sg.Text(f'Envelope{i}',background_color= 'grey10'),
+                 sg.Button('Mute',key=f'-muteEnvelope{i}-', button_color= 'grey10'),
+                 sg.Button('Modify',key=f'-modifyEnvelope{i}-', button_color= 'grey10')]
+        window.extend_layout(window['-Envelope-Bank-'], [new_row])
+
 
 
     if modifyingLFO != None:
@@ -301,11 +361,31 @@ while True:
             window['-LFO-AMPLITUDE-'].update(value= LFO[modifyingLFO]["amplitude"]*100)
             window['-LFO-WAVEFORM-'].update(value= fncToWaveStr[LFO[modifyingLFO]["waveform"]])
             window['-LFO-TARGET-ATTRIBUTE-'].update(value= LFO[modifyingLFO]["targetAttribute"])
+            
+    for i in Envelope.keys():
+        if event == f'-modifyEnvelope{i}-':
+             
+            modifyingEnvelope = i
+            window['-Current-Envelope-'].update(value = "current Envelope : " + str(i), background_color = 'grey10') 
+            
+          
 
+            window['-Envelope-Attack-'].update(value= LFO[modifyingEnvelope]["Attack"])
+            window['-Envelope-Decay-'].update(value= (LFO[modifyingEnvelope]["Sustain"]))
+            window['-Envelope-Sustain-'].update(value= LFO[modifyingEnvelope]["Decay"])
+            window['-Envelope-Release'].update(value= fncToWaveStr[LFO[modifyingEnvelope]["Release"]])
+       
     
 
     if event == '-addOscillator-':
         oscillatorNumber += 1
+ 
+        LFOList.append("osci" + str(oscillatorNumber - 1) + " Freq")
+        LFOList.append("osci" + str(oscillatorNumber - 1) + " Amp")
+
+        currentTarget = values['-LFO-TARGET-ATTRIBUTE-']
+        window['-LFO-TARGET-ATTRIBUTE-'].update(value = currentTarget , values=LFOList)
+      
 
    
     for i in range(1,oscillatorNumber):
@@ -323,10 +403,13 @@ while True:
                  sg.Button('Modify',key=f'-modify{i}-', button_color= osci[i]['color'])]
             window.extend_layout(window['-osciBank-'], [new_row],)
   
-    for oscillator in osci.keys():
-         osci[oscillator]["modifiers"] = []
-         for lfo in LFO.keys():
-              osci[oscillator]["modifiers"].append(dict(LFO[lfo]))
+    for iOscillator in osci.keys():
+        
+         osci[iOscillator]["modifiers"] = []
+         for ilfo in LFO.keys():
+                #should append only if apllies to current osci
+                osci[iOscillator]["modifiers"].append(dict(LFO[ilfo]))
+              
               
 
     for i in osci.keys():
