@@ -21,7 +21,8 @@ class KeysPressed:
     
     def get_currently_pressed_keys(self):
         #convert timestamp to duration pressed
-        return {key: time() - self.currently_pressed_keys[key] for key in self.currently_pressed_keys}
+        keys = dict(self.currently_pressed_keys)
+        return {key: time() - keys[key] for key in keys}
     
     def listen(self):
         self.listener_thread = Listener(on_press=self.on_press, on_release=self.on_release)

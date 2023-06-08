@@ -1,27 +1,27 @@
-
+from pynput.keyboard import KeyCode as KC
 
 KEYBOARD_TO_NOTE_MAPPING = {
-          "a" : 0,
-          "w" : 1,
-          "s" : 2,
-          "e" : 3,
-          "d" : 4,
-          "f" : 5,
-          "t" : 6,
-          "g" : 7,
-          "y" : 8,
-          "h" : 9,
-          "u" : 10,
-          "j" : 11,
-          "k" : 12,
-          "o" : 13,
-          "l" : 14,
-          "p" : 15,
-          ";" : 16,
-          "'" : 17,
-          "]" : 18,
-          "z" : "down",
-          "x" : "up"
+          KC.from_char("a") : 0,
+          KC.from_char("w") : 1,
+          KC.from_char("s") : 2,
+          KC.from_char("e") : 3,
+          KC.from_char("d") : 4,
+          KC.from_char("f") : 5,
+          KC.from_char("t") : 6,
+          KC.from_char("g") : 7,
+          KC.from_char("y") : 8,
+          KC.from_char("h") : 9,
+          KC.from_char("u") : 10,
+          KC.from_char("j") : 11,
+          KC.from_char("k") : 12,
+          KC.from_char("o") : 13,
+          KC.from_char("l") : 14,
+          KC.from_char("p") : 15,
+          KC.from_char(";") : 16,
+          KC.from_char("'") : 17,
+          KC.from_char("]") : 18,
+          KC.from_char("z") : "down",
+          KC.from_char("x") : "up"
       }
 
 
