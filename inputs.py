@@ -17,12 +17,19 @@ class KeysPressed:
 
     def on_release(self, key):
         if key in self.currently_pressed_keys:
-            del self.currently_pressed_keys[key]
+            # last time since key pressed if negative
+            self.currently_pressed_keys[key] = -time()
     
     def get_currently_pressed_keys(self):
         #convert timestamp to duration pressed
         keys = dict(self.currently_pressed_keys)
-        return {key: time() - keys[key] for key in keys}
+        pressed_keys_durations = {}
+        for key in keys:
+            pressed_keys_durations[key] = time() -  abs(keys[key])
+            if keys[key] < 0:
+                pressed_keys_durations[key] *= -1.0
+                
+        return pressed_keys_durations
     
     def listen(self):
         self.listener_thread = Listener(on_press=self.on_press, on_release=self.on_release)

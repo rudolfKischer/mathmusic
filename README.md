@@ -6,6 +6,8 @@ use the keys to play notes like a piano
 
 make sure to install requirements using pip
 
+![demo](demo.gif)
+
 # Setup
 
 ## Pip Installation Requirements
