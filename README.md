@@ -2,6 +2,11 @@
 
 Synth creator 
 
+This takes creates sound by symtheticly making waves of different shapes using mathematical functions and combining them together to produce different effects.
+
+Checkout [additive synthesis](https://en.wikipedia.org/wiki/Additive_synthesis) and [digital synthesizers](https://en.wikipedia.org/wiki/Digital_synthesizer) to learn more. 
+The visuals produced are trying to imitate what you might find on an [oscilloscope](https://en.wikipedia.org/wiki/Oscilloscope)
+
 use the keys to play notes like a piano
 
 make sure to install requirements using pip
